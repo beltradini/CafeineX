@@ -1,0 +1,6 @@
+[
+  { "name": "Espresso", "caffeineMg": 80 },
+  { "name": "Café Americano", "caffeineMg": 95 },
+  { "name": "Té Verde", "caffeineMg": 30 },
+  { "name": "Red Bull", "caffeineMg": 80 }
+]
