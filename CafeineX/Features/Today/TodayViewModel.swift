@@ -1,0 +1,177 @@
+import Foundation
+import HealthKit
+import Observation
+import SwiftData
+
+@MainActor
+@Observable
+final class TodayViewModel {
+    enum HealthAccessState: Equatable {
+        case unavailable
+        case notRequested
+        case writeEnabled
+        case writeDisabled
+    }
+
+    private let engine: CaffeineEngine
+    private let healthKitService: any HealthKitProviding
+
+    var entries: [CaffeineEntry] = []
+    var status: CaffeineStatus?
+    var healthAccessState: HealthAccessState = .notRequested
+    var healthMessage: String?
+    var isSyncingHealth = false
+    var lastHealthSyncDate: Date?
+
+    init() {
+        self.engine = CaffeineEngine()
+        self.healthKitService = HealthKitService()
+        refreshHealthAccessState()
+    }
+
+    init(engine: CaffeineEngine, healthKitService: any HealthKitProviding) {
+        self.engine = engine
+        self.healthKitService = healthKitService
+        refreshHealthAccessState()
+    }
+
+    func load(entries: [CaffeineEntry]) {
+        self.entries = entries
+        status = engine.makeStatus(doses: entries.map(\.dose))
+    }
+
+    func refreshHealthAccessState() {
+        guard healthKitService.isHealthKitAvailable else {
+            healthAccessState = .unavailable
+            return
+        }
+
+        switch healthKitService.caffeineWriteAuthorizationStatus {
+        case .notDetermined:
+            healthAccessState = .notRequested
+        case .sharingAuthorized:
+            healthAccessState = .writeEnabled
+        case .sharingDenied:
+            healthAccessState = .writeDisabled
+        @unknown default:
+            healthAccessState = .notRequested
+        }
+    }
+
+    func requestHealthAccess(context: ModelContext) async {
+        do {
+            try await healthKitService.requestAuthorization()
+            refreshHealthAccessState()
+            await synchronizeHealthKit(context: context)
+        } catch {
+            refreshHealthAccessState()
+            healthMessage = error.localizedDescription
+        }
+    }
+
+    func synchronizeHealthKit(context: ModelContext) async {
+        guard healthAccessState != .unavailable, !isSyncingHealth else { return }
+
+        isSyncingHealth = true
+        defer { isSyncingHealth = false }
+
+        do {
+            let startDate = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .distantPast
+            let samples = try await healthKitService.fetchCaffeineSamples(from: startDate, to: .now)
+            let importedCount = reconcile(samples: samples, context: context)
+            try context.save()
+            lastHealthSyncDate = .now
+            healthMessage = importedCount == 0
+                ? "Apple Health is up to date."
+                : "Imported \(importedCount) caffeine \(importedCount == 1 ? "entry" : "entries") from Apple Health."
+        } catch {
+            healthMessage = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func addDrink(
+        name: String,
+        caffeineMG: Double,
+        consumedAt: Date = .now,
+        context: ModelContext
+    ) -> Bool {
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty, caffeineMG.isFinite, caffeineMG > 0, caffeineMG <= 1_000 else {
+            healthMessage = "Enter a name and a caffeine amount between 1 and 1,000 mg."
+            return false
+        }
+
+        let entry = CaffeineEntry(
+            drinkName: normalizedName,
+            caffeineMG: caffeineMG,
+            consumedAt: min(consumedAt, .now),
+            source: .manual
+        )
+
+        context.insert(entry)
+        entries.append(entry)
+        status = engine.makeStatus(doses: entries.map(\.dose))
+
+        Task {
+            await saveToHealthKit(entry, context: context)
+        }
+        return true
+    }
+
+    private func saveToHealthKit(_ entry: CaffeineEntry, context: ModelContext) async {
+        guard healthAccessState == .writeEnabled else {
+            healthMessage = "Saved on this device. Apple Health write access is off."
+            return
+        }
+
+        do {
+            let sample = try await healthKitService.saveCaffeine(
+                milligrams: entry.caffeineMG,
+                date: entry.consumedAt,
+                appEntryID: entry.id,
+                displayName: entry.drinkName
+            )
+            entry.healthKitUUID = sample.id
+            try context.save()
+            healthMessage = nil
+        } catch {
+            healthMessage = "Saved on this device, but Apple Health could not be updated: \(error.localizedDescription)"
+        }
+    }
+
+    private func reconcile(samples: [HealthCaffeineSample], context: ModelContext) -> Int {
+        var entriesByID = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
+        var knownHealthUUIDs = Set(entries.compactMap(\.healthKitUUID))
+        var importedCount = 0
+
+        for sample in samples {
+            if knownHealthUUIDs.contains(sample.id) {
+                continue
+            }
+
+            if let appEntryID = sample.appEntryID, let linkedEntry = entriesByID[appEntryID] {
+                linkedEntry.healthKitUUID = sample.id
+                knownHealthUUIDs.insert(sample.id)
+                continue
+            }
+
+            let entry = CaffeineEntry(
+                drinkName: sample.displayName ?? "Apple Health",
+                caffeineMG: sample.milligrams,
+                consumedAt: sample.consumedAt,
+                source: .healthKit,
+                healthKitUUID: sample.id
+            )
+            context.insert(entry)
+            entries.append(entry)
+            entriesByID[entry.id] = entry
+            knownHealthUUIDs.insert(sample.id)
+            importedCount += 1
+        }
+
+        entries.sort { $0.consumedAt > $1.consumedAt }
+        status = engine.makeStatus(doses: entries.map(\.dose))
+        return importedCount
+    }
+}
