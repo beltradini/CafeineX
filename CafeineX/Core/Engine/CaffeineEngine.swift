@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct CaffeineEngine: Sendable {
-    struct Configuration: Sendable {
+nonisolated struct CaffeineEngine: Sendable {
+    nonisolated struct Configuration: Sendable {
         var dailyReferenceMG: Double = 400
         var centralHalfLifeHours: Double = 5
         var fastHalfLifeHours: Double = 3

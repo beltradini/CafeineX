@@ -1,0 +1,58 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+script_directory=${0:A:h}
+project_root=${script_directory:h}
+derived_data_path=${CAFEINEX_DERIVED_DATA_PATH:-/tmp/CafeineXDerivedData}
+action=${1:-build}
+
+cd "$project_root"
+
+common_arguments=(
+  -project CafeineX.xcodeproj
+  -scheme CafeineX
+  -derivedDataPath "$derived_data_path"
+)
+
+case "$action" in
+  build)
+    xcodebuild \
+      "${common_arguments[@]}" \
+      -configuration Debug \
+      -destination "generic/platform=iOS" \
+      CODE_SIGNING_ALLOWED=NO \
+      build
+    ;;
+  test)
+    simulator_id=$(
+      xcrun simctl list devices available |
+        awk -F '[()]' '/iPhone/ && /(Booted|Shutdown)/ { print $2; exit }'
+    )
+
+    if [[ -z "$simulator_id" ]]; then
+      print -u2 "No available iPhone simulator was found. Install an iOS runtime in Xcode Settings > Components."
+      exit 2
+    fi
+
+    xcodebuild \
+      "${common_arguments[@]}" \
+      -configuration Debug \
+      -destination "platform=iOS Simulator,id=$simulator_id" \
+      -only-testing:CafeineXTests \
+      test
+    ;;
+  analyze)
+    xcodebuild \
+      "${common_arguments[@]}" \
+      -configuration Debug \
+      -destination "generic/platform=iOS" \
+      CODE_SIGNING_ALLOWED=NO \
+      analyze
+    ;;
+  *)
+    print -u2 "Usage: ./Scripts/cx {build|test|analyze}"
+    exit 2
+    ;;
+esac
+

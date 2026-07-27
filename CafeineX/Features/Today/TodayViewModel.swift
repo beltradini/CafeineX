@@ -76,7 +76,7 @@ final class TodayViewModel {
         defer { isSyncingHealth = false }
 
         do {
-            let startDate = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .distantPast
+            let startDate = CaffeineHistoryPolicy.synchronizationStartDate()
             let samples = try await healthKitService.fetchCaffeineSamples(from: startDate, to: .now)
             let importedCount = reconcile(samples: samples, context: context)
             try context.save()
@@ -110,6 +110,14 @@ final class TodayViewModel {
         )
 
         context.insert(entry)
+        do {
+            try context.save()
+        } catch {
+            context.delete(entry)
+            healthMessage = "CafeineX could not save this entry: \(error.localizedDescription)"
+            return false
+        }
+
         entries.append(entry)
         status = engine.makeStatus(doses: entries.map(\.dose))
 

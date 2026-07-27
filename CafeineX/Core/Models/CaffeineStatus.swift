@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CaffeineStatus: Codable, Sendable {
+nonisolated struct CaffeineStatus: Codable, Sendable {
     let consumedTodayMG: Double
     let activeCaffeineMG: Double
     let activeCaffeineLowMG: Double

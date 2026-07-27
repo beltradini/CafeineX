@@ -11,11 +11,23 @@ import SwiftData
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
 
-    @Query(sort: \CaffeineEntry.consumedAt, order: .reverse)
-    private var entries: [CaffeineEntry]
+    @Query private var entries: [CaffeineEntry]
 
     @State private var viewModel = TodayViewModel()
     @State private var isShowingCustomEntry = false
+
+    init(referenceDate: Date = .now) {
+        let historyStart = CaffeineHistoryPolicy.synchronizationStartDate(
+            relativeTo: referenceDate
+        )
+        _entries = Query(
+            filter: #Predicate<CaffeineEntry> { entry in
+                entry.consumedAt >= historyStart
+            },
+            sort: \CaffeineEntry.consumedAt,
+            order: .reverse
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -23,7 +35,7 @@ struct TodayView: View {
                 CXBackgroundView()
 
                 ScrollView {
-                    VStack(spacing: 20) {
+                    LazyVStack(spacing: 20) {
                         headerSection
                         healthStatusCard
 
@@ -279,7 +291,7 @@ struct TodayView: View {
 
                 Spacer()
 
-                Text("\(entries.count)")
+                Text("\(dashboardEntries.count)")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -298,12 +310,23 @@ struct TodayView: View {
                     }
                 }
             } else {
-                ForEach(entries) { entry in
+                ForEach(dashboardEntries) { entry in
                     timelineRow(entry)
+                }
+
+                if entries.count > dashboardEntries.count {
+                    Text("Showing the \(dashboardEntries.count) most recent entries from the 30-day sync window.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var dashboardEntries: ArraySlice<CaffeineEntry> {
+        entries.prefix(CaffeineHistoryPolicy.dashboardEntryLimit)
     }
 
     private func timelineRow(_ entry: CaffeineEntry) -> some View {

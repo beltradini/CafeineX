@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum CaffeineRiskLevel: String, Codable, Sendable {
+nonisolated enum CaffeineRiskLevel: String, Codable, Sendable {
     case low
     case moderate
     case high
