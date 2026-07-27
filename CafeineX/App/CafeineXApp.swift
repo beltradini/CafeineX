@@ -14,14 +14,15 @@ struct CafeineXApp: App {
     @State private var sensitivityStore = CaffeineSensitivityStore()
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            CaffeineEntry.self,
-            Drink.self,
-        ])
+        let schema = Schema(versionedSchema: CafeineXSchemaV1.self)
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(
+                for: schema,
+                migrationPlan: CafeineXMigrationPlan.self,
+                configurations: [modelConfiguration]
+            )
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

@@ -4,7 +4,7 @@
 
 CafeineX uses a feature-first shell with explicit boundaries:
 
-1. `CafeineXApp` is the composition root. It creates the SwiftData schema and launches `TodayView`.
+1. `CafeineXApp` is the composition root. It opens the V1 SwiftData baseline through `CafeineXMigrationPlan` and launches `TodayView`.
 2. `TodayView` owns presentation and observes a bounded 30-day SwiftData query.
 3. `TodayViewModel` coordinates local persistence, calculation, and HealthKit reconciliation on the main actor.
 4. `CaffeineEngine` accepts persistence-independent `CaffeineDose` values and returns `CaffeineStatus`.
@@ -68,7 +68,7 @@ This is a user-level shell setting, not a repository file, so it is intentionall
 
 Before adding watchOS, widgets, App Intents, or stimulant-interaction features:
 
-1. Add migration tests before changing the SwiftData schema.
+1. Extend `CafeineXMigrationPlan` and its disk-backed migration tests before every SwiftData schema change. The V1 compatibility test reproduces the original unversioned store so adopting the plan cannot discard existing data.
 2. Add a separate history feature before exposing the complete retained timeline.
 3. Keep nicotine or other exposures in a separate model and engine; do not merge their quantities into caffeine milligrams.
 4. Add background HealthKit delivery only after foreground synchronization has device-level reliability evidence.
