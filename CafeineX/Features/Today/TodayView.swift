@@ -328,9 +328,14 @@ struct TodayView: View {
 
                 Spacer()
 
-                Text("\(dashboardEntries.count)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Label("View all", systemImage: "chevron.right")
+                        .labelStyle(.titleAndIcon)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(CXTheme.caffeineAccent)
+                }
             }
 
             if entries.isEmpty {
@@ -352,7 +357,7 @@ struct TodayView: View {
                 }
 
                 if entries.count > dashboardEntries.count {
-                    Text("Showing the \(dashboardEntries.count) most recent entries from the 30-day sync window.")
+                    Text("Showing the \(dashboardEntries.count) most recent entries. Open History for the complete local record.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
