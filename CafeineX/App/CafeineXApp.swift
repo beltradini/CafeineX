@@ -10,6 +10,9 @@ import SwiftData
 
 @main
 struct CafeineXApp: App {
+    @State private var sleepScheduleStore = SleepScheduleStore()
+    @State private var sensitivityStore = CaffeineSensitivityStore()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             CaffeineEntry.self,
@@ -27,6 +30,8 @@ struct CafeineXApp: App {
     var body: some Scene {
         WindowGroup {
             TodayView()
+                .environment(sleepScheduleStore)
+                .environment(sensitivityStore)
         }
         .modelContainer(sharedModelContainer)
     }

@@ -10,6 +10,8 @@
 - Caffeine calculations operate on the persistence-independent `CaffeineDose` value.
 - Active caffeine is shown as a central estimate and a 3–7 hour half-life range.
 - Bedtime guidance uses the slower-metabolism bound and is described as guidance, not diagnosis.
+- Bedtime and the caffeine cutoff interval are user-configurable and persist across launches.
+- Personal response sensitivity adjusts guidance thresholds without changing exposure estimates or the 400 mg reference.
 
 ## Phase 2 boundary
 
@@ -24,7 +26,6 @@ Nicotine and tobacco concepts are intentionally absent from the current persiste
 ## Deliberately deferred
 
 - watchOS target, complications, widgets, and App Intents.
-- Personalized bedtime and caffeine sensitivity settings.
 - Heart rate, HRV, sleep, and contextual correlation.
 - Deleting CafeineX-owned HealthKit samples from the local timeline.
 - Background HealthKit delivery.

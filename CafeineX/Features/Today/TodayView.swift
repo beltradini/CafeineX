@@ -10,11 +10,14 @@ import SwiftData
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(SleepScheduleStore.self) private var sleepScheduleStore
+    @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
 
     @Query private var entries: [CaffeineEntry]
 
     @State private var viewModel = TodayViewModel()
     @State private var isShowingCustomEntry = false
+    @State private var isShowingSleepSettings = false
 
     init(referenceDate: Date = .now) {
         let historyStart = CaffeineHistoryPolicy.synchronizationStartDate(
@@ -60,6 +63,14 @@ struct TodayView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isShowingSleepSettings = true
+                    } label: {
+                        Label("Sleep guidance", systemImage: "moon.zzz")
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isShowingCustomEntry = true
@@ -69,6 +80,7 @@ struct TodayView: View {
                 }
             }
             .task {
+                updateGuidancePreferences()
                 viewModel.load(entries: entries)
                 viewModel.refreshHealthAccessState()
 
@@ -78,6 +90,18 @@ struct TodayView: View {
             }
             .onChange(of: entries.count) {
                 viewModel.load(entries: entries)
+            }
+            .onChange(of: sleepScheduleStore.schedule) { _, schedule in
+                viewModel.updatePreferences(
+                    sleepSchedule: schedule,
+                    sensitivity: sensitivityStore.profile
+                )
+            }
+            .onChange(of: sensitivityStore.profile) { _, sensitivity in
+                viewModel.updatePreferences(
+                    sleepSchedule: sleepScheduleStore.schedule,
+                    sensitivity: sensitivity
+                )
             }
             .sheet(isPresented: $isShowingCustomEntry) {
                 CustomCaffeineEntrySheet { name, milligrams, consumedAt in
@@ -89,8 +113,21 @@ struct TodayView: View {
                     )
                 }
             }
+            .sheet(isPresented: $isShowingSleepSettings) {
+                GuidanceSettingsView(
+                    sleepScheduleStore: sleepScheduleStore,
+                    sensitivityStore: sensitivityStore
+                )
+            }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func updateGuidancePreferences() {
+        viewModel.updatePreferences(
+            sleepSchedule: sleepScheduleStore.schedule,
+            sensitivity: sensitivityStore.profile
+        )
     }
 
     private var headerSection: some View {
@@ -480,5 +517,7 @@ struct TodayView: View {
 
 #Preview {
     TodayView()
+        .environment(SleepScheduleStore())
+        .environment(CaffeineSensitivityStore())
         .modelContainer(for: [CaffeineEntry.self, Drink.self], inMemory: true)
 }

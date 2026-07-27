@@ -14,7 +14,23 @@ nonisolated struct CaffeineEngine: Sendable {
         var fastHalfLifeHours: Double = 3
         var slowHalfLifeHours: Double = 7
         var targetBedtimeHour: Int = 22
+        var targetBedtimeMinute: Int = 0
         var cutoffHoursBeforeBedtime: Int = 8
+        var dailyGuidanceFraction: Double = 0.625
+        var activeLoadGuidanceThresholdMG: Double = 200
+        var bedtimeGuidanceThresholdMG: Double = 100
+
+        init(
+            sleepSchedule: SleepSchedule = .default,
+            sensitivity: CaffeineSensitivityProfile = .typical
+        ) {
+            targetBedtimeHour = sleepSchedule.bedtimeHour
+            targetBedtimeMinute = sleepSchedule.bedtimeMinute
+            cutoffHoursBeforeBedtime = sleepSchedule.cutoffHoursBeforeBedtime
+            dailyGuidanceFraction = sensitivity.dailyGuidanceFraction
+            activeLoadGuidanceThresholdMG = sensitivity.activeLoadGuidanceThresholdMG
+            bedtimeGuidanceThresholdMG = sensitivity.bedtimeGuidanceThresholdMG
+        }
     }
 
     private let configuration: Configuration
@@ -119,11 +135,13 @@ nonisolated struct CaffeineEngine: Sendable {
             return .high
         }
 
-        if currentDate >= suggestedCutoffTime && caffeineAtBedtimeHighMG >= 100 {
+        if currentDate >= suggestedCutoffTime
+            && caffeineAtBedtimeHighMG >= configuration.bedtimeGuidanceThresholdMG {
             return .sleepRisk
         }
 
-        if consumedTodayMG >= configuration.dailyReferenceMG * 0.625 || activeCaffeineMG >= 200 {
+        if consumedTodayMG >= configuration.dailyReferenceMG * configuration.dailyGuidanceFraction
+            || activeCaffeineMG >= configuration.activeLoadGuidanceThresholdMG {
             return .moderate
         }
 
@@ -136,7 +154,7 @@ nonisolated struct CaffeineEngine: Sendable {
     ) -> Date {
         let bedtimeToday = calendar.date(
             bySettingHour: configuration.targetBedtimeHour,
-            minute: 0,
+            minute: configuration.targetBedtimeMinute,
             second: 0,
             of: currentDate
         ) ?? currentDate

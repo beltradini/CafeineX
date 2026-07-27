@@ -1,6 +1,6 @@
 # CafeineX
 
-CafeineX is an iOS caffeine-intelligence app built with SwiftUI, SwiftData, and HealthKit. It estimates active caffeine as a range, keeps a local timeline, and reconciles authorized caffeine records with Apple Health without duplicating app-owned samples.
+CafeineX is an iOS caffeine-intelligence app built with SwiftUI, SwiftData, and HealthKit. It estimates active caffeine as a range against a configurable sleep schedule and response sensitivity, keeps a local timeline, and reconciles authorized caffeine records with Apple Health without duplicating app-owned samples.
 
 ## Open and verify
 
@@ -26,4 +26,3 @@ The helper keeps DerivedData in `/tmp/CafeineXDerivedData`, disables signing for
 - `docs`: architecture, workflow, and phase boundaries.
 
 See [architecture and workflow](docs/ARCHITECTURE_AND_WORKFLOW.md) and [phase 0–1 scope](docs/PHASE_0_1_FOUNDATION.md).
-

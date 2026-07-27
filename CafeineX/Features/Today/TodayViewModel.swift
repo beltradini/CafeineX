@@ -13,7 +13,7 @@ final class TodayViewModel {
         case writeDisabled
     }
 
-    private let engine: CaffeineEngine
+    private var engine: CaffeineEngine
     private let healthKitService: any HealthKitProviding
 
     var entries: [CaffeineEntry] = []
@@ -37,7 +37,20 @@ final class TodayViewModel {
 
     func load(entries: [CaffeineEntry]) {
         self.entries = entries
-        status = engine.makeStatus(doses: entries.map(\.dose))
+        recalculateStatus()
+    }
+
+    func updatePreferences(
+        sleepSchedule: SleepSchedule,
+        sensitivity: CaffeineSensitivityProfile
+    ) {
+        engine = CaffeineEngine(
+            configuration: CaffeineEngine.Configuration(
+                sleepSchedule: sleepSchedule,
+                sensitivity: sensitivity
+            )
+        )
+        recalculateStatus()
     }
 
     func refreshHealthAccessState() {
@@ -119,7 +132,7 @@ final class TodayViewModel {
         }
 
         entries.append(entry)
-        status = engine.makeStatus(doses: entries.map(\.dose))
+        recalculateStatus()
 
         Task {
             await saveToHealthKit(entry, context: context)
@@ -179,7 +192,11 @@ final class TodayViewModel {
         }
 
         entries.sort { $0.consumedAt > $1.consumedAt }
-        status = engine.makeStatus(doses: entries.map(\.dose))
+        recalculateStatus()
         return importedCount
+    }
+
+    private func recalculateStatus() {
+        status = engine.makeStatus(doses: entries.map(\.dose))
     }
 }
