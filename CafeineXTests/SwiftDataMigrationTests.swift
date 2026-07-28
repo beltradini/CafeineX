@@ -98,10 +98,85 @@ struct SwiftDataMigrationTests {
     }
 
     @Test func migrationPlanDeclaresCurrentSchemaAsItsBaseline() {
-        #expect(CafeineXMigrationPlan.schemas.count == 1)
+        #expect(CafeineXMigrationPlan.schemas.count == 2)
         #expect(CafeineXMigrationPlan.schemas.first == CafeineXSchemaV1.self)
-        #expect(CafeineXMigrationPlan.stages.isEmpty)
+        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV2.self)
+        #expect(CafeineXMigrationPlan.stages.count == 1)
         #expect(CafeineXSchemaV1.versionIdentifier == Schema.Version(1, 0, 0))
+        #expect(CafeineXSchemaV2.versionIdentifier == Schema.Version(2, 0, 0))
+    }
+
+    @Test func v1StoreMigratesToV2AndAcceptsNicotineEntries() throws {
+        let storeDirectory = FileManager.default.temporaryDirectory
+            .appending(path: "CafeineXV2MigrationTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let storeURL = storeDirectory.appending(path: "CafeineX.store")
+        try FileManager.default.createDirectory(
+            at: storeDirectory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: storeDirectory)
+        }
+
+        let caffeineID = UUID()
+        let consumedAt = Date(timeIntervalSince1970: 1_753_722_000)
+
+        do {
+            let v1Schema = Schema(versionedSchema: CafeineXSchemaV1.self)
+            let v1Configuration = ModelConfiguration(
+                schema: v1Schema,
+                url: storeURL,
+                cloudKitDatabase: .none
+            )
+            let v1Container = try ModelContainer(
+                for: v1Schema,
+                configurations: [v1Configuration]
+            )
+            v1Container.mainContext.insert(
+                CaffeineEntry(
+                    id: caffeineID,
+                    drinkName: "Migration Espresso",
+                    caffeineMG: 64,
+                    consumedAt: consumedAt
+                )
+            )
+            try v1Container.mainContext.save()
+        }
+
+        let v2Schema = Schema(versionedSchema: CafeineXSchemaV2.self)
+        let v2Configuration = ModelConfiguration(
+            schema: v2Schema,
+            url: storeURL,
+            cloudKitDatabase: .none
+        )
+        let v2Container = try ModelContainer(
+            for: v2Schema,
+            migrationPlan: CafeineXMigrationPlan.self,
+            configurations: [v2Configuration]
+        )
+        let context = v2Container.mainContext
+
+        let caffeineEntries = try context.fetch(FetchDescriptor<CaffeineEntry>())
+        let migratedEntry = try #require(caffeineEntries.first)
+        #expect(caffeineEntries.count == 1)
+        #expect(migratedEntry.id == caffeineID)
+        #expect(migratedEntry.drinkName == "Migration Espresso")
+        #expect(migratedEntry.caffeineMG == 64)
+
+        let nicotineEntry = NicotineEntry(
+            product: .pouch,
+            quantity: 4,
+            unit: .milligrams,
+            usedAt: consumedAt.addingTimeInterval(600)
+        )
+        context.insert(nicotineEntry)
+        try context.save()
+
+        let nicotineEntries = try context.fetch(FetchDescriptor<NicotineEntry>())
+        let persistedNicotine = try #require(nicotineEntries.first)
+        #expect(nicotineEntries.count == 1)
+        #expect(persistedNicotine.product == .pouch)
+        #expect(persistedNicotine.quantity == 4)
+        #expect(persistedNicotine.unit == .milligrams)
     }
 }
-

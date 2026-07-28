@@ -14,6 +14,7 @@ enum CXTheme {
     static let horizontalPadding: CGFloat = 20
 
     static let caffeineAccent = Color(red: 0.95, green: 0.58, blue: 0.22)
+    static let nicotineAccent = Color(red: 0.58, green: 0.48, blue: 0.98)
     static let healthAccent = Color(red: 0.34, green: 0.86, blue: 0.54)
     static let warningAccent = Color(red: 1.00, green: 0.37, blue: 0.28)
 

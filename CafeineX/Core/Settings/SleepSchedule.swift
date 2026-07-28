@@ -32,5 +32,16 @@ nonisolated struct SleepSchedule: Equatable, Sendable {
             of: date
         ) ?? date
     }
-}
 
+    func nextBedtime(
+        relativeTo date: Date = .now,
+        calendar: Calendar = .current
+    ) -> Date {
+        let bedtimeToday = bedtimeDate(relativeTo: date, calendar: calendar)
+        if bedtimeToday >= date {
+            return bedtimeToday
+        }
+
+        return calendar.date(byAdding: .day, value: 1, to: bedtimeToday) ?? bedtimeToday
+    }
+}

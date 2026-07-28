@@ -14,9 +14,11 @@ struct TodayView: View {
     @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
 
     @Query private var entries: [CaffeineEntry]
+    @Query private var nicotineEntries: [NicotineEntry]
 
     @State private var viewModel = TodayViewModel()
     @State private var isShowingCustomEntry = false
+    @State private var isShowingNicotineEntry = false
     @State private var isShowingSleepSettings = false
 
     init(referenceDate: Date = .now) {
@@ -28,6 +30,13 @@ struct TodayView: View {
                 entry.consumedAt >= historyStart
             },
             sort: \CaffeineEntry.consumedAt,
+            order: .reverse
+        )
+        _nicotineEntries = Query(
+            filter: #Predicate<NicotineEntry> { entry in
+                entry.usedAt >= historyStart
+            },
+            sort: \NicotineEntry.usedAt,
             order: .reverse
         )
     }
@@ -48,7 +57,13 @@ struct TodayView: View {
 
                         if let status = viewModel.status {
                             caffeineSummary(status)
+
+                            if let exposureContext = viewModel.dailyExposureContext {
+                                dailyExposureSummary(exposureContext)
+                            }
+
                             quickAddSection
+                            nicotineLoggingSection
                             timelineSection
                         } else {
                             emptyState
@@ -72,16 +87,26 @@ struct TodayView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isShowingCustomEntry = true
+                    Menu {
+                        Button {
+                            isShowingCustomEntry = true
+                        } label: {
+                            Label("Log caffeine", systemImage: "cup.and.saucer.fill")
+                        }
+
+                        Button {
+                            isShowingNicotineEntry = true
+                        } label: {
+                            Label("Log nicotine", systemImage: "waveform.path.ecg")
+                        }
                     } label: {
-                        Label("Add caffeine", systemImage: "plus")
+                        Label("Log exposure", systemImage: "plus")
                     }
                 }
             }
             .task {
                 updateGuidancePreferences()
-                viewModel.load(entries: entries)
+                viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
                 viewModel.refreshHealthAccessState()
 
                 if viewModel.healthAccessState != .notRequested {
@@ -89,7 +114,10 @@ struct TodayView: View {
                 }
             }
             .onChange(of: entries.count) {
-                viewModel.load(entries: entries)
+                viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
+            }
+            .onChange(of: nicotineEntries.count) {
+                viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
             }
             .onChange(of: sleepScheduleStore.schedule) { _, schedule in
                 viewModel.updatePreferences(
@@ -118,6 +146,18 @@ struct TodayView: View {
                     sleepScheduleStore: sleepScheduleStore,
                     sensitivityStore: sensitivityStore
                 )
+            }
+            .sheet(isPresented: $isShowingNicotineEntry) {
+                NicotineEntrySheet { product, quantity, unit, usedAt, note in
+                    viewModel.addNicotine(
+                        product: product,
+                        quantity: quantity,
+                        unit: unit,
+                        usedAt: usedAt,
+                        note: note,
+                        context: modelContext
+                    )
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -271,6 +311,63 @@ struct TodayView: View {
         .modifier(CXLiquidGlassModifier(cornerRadius: CXTheme.smallCornerRadius))
     }
 
+    private func dailyExposureSummary(_ context: DailyExposureContext) -> some View {
+        CXGlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Daily Exposure Context")
+                            .font(.headline)
+
+                        Text(context.guidance.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(exposureTint(for: context.guidance))
+                    }
+
+                    Spacer()
+
+                    Image(systemName: exposureSymbol(for: context.guidance))
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(exposureTint(for: context.guidance))
+                }
+
+                HStack(spacing: 12) {
+                    CXMetricCard(
+                        title: "Nicotine today",
+                        value: context.nicotineStatus.amountsToday.displayText,
+                        symbol: "waveform.path.ecg",
+                        tint: CXTheme.nicotineAccent
+                    )
+
+                    CXMetricCard(
+                        title: "Active windows",
+                        value: context.nicotineStatus.activeEventCount.formatted(),
+                        symbol: "clock.badge",
+                        tint: CXTheme.nicotineAccent
+                    )
+                }
+
+                Text(context.guidance.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if context.hasTemporalOverlap {
+                    Label(
+                        "\(context.temporalOverlapCount) caffeine–nicotine timing \(context.temporalOverlapCount == 1 ? "overlap" : "overlaps")",
+                        systemImage: "arrow.triangle.branch"
+                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(CXTheme.warningAccent)
+                }
+
+                Text(context.nicotineStatus.sleepGuidance.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var quickAddSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Quick Add")
@@ -288,6 +385,35 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var nicotineLoggingSection: some View {
+        Button {
+            isShowingNicotineEntry = true
+        } label: {
+            CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                HStack(spacing: 14) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(CXTheme.nicotineAccent)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Log Nicotine")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        Text("Record product, amount, unit, and timing.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func quickAddButton(name: String, mg: Double) -> some View {
@@ -338,7 +464,7 @@ struct TodayView: View {
                 }
             }
 
-            if entries.isEmpty {
+            if entries.isEmpty && nicotineEntries.isEmpty {
                 CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
                     HStack(spacing: 12) {
                         Image(systemName: "clock")
@@ -352,12 +478,17 @@ struct TodayView: View {
                     }
                 }
             } else {
-                ForEach(dashboardEntries) { entry in
-                    timelineRow(entry)
+                ForEach(dashboardTimelineItems) { item in
+                    switch item {
+                    case .caffeine(let entry):
+                        timelineRow(entry)
+                    case .nicotine(let entry):
+                        nicotineTimelineRow(entry)
+                    }
                 }
 
-                if entries.count > dashboardEntries.count {
-                    Text("Showing the \(dashboardEntries.count) most recent entries. Open History for the complete local record.")
+                if entries.count + nicotineEntries.count > dashboardTimelineItems.count {
+                    Text("Showing the \(dashboardTimelineItems.count) most recent exposure events. Open History for the complete local record.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -367,8 +498,12 @@ struct TodayView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var dashboardEntries: ArraySlice<CaffeineEntry> {
-        entries.prefix(CaffeineHistoryPolicy.dashboardEntryLimit)
+    private var dashboardTimelineItems: ArraySlice<TodayTimelineItem> {
+        let caffeineItems = entries.map(TodayTimelineItem.caffeine)
+        let nicotineItems = nicotineEntries.map(TodayTimelineItem.nicotine)
+        return (caffeineItems + nicotineItems)
+            .sorted { $0.date > $1.date }
+            .prefix(CaffeineHistoryPolicy.dashboardEntryLimit)
     }
 
     private func timelineRow(_ entry: CaffeineEntry) -> some View {
@@ -409,6 +544,45 @@ struct TodayView: View {
         }
     }
 
+    private func nicotineTimelineRow(_ entry: NicotineEntry) -> some View {
+        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(CXTheme.nicotineAccent.opacity(0.18))
+                        .frame(width: 42, height: 42)
+
+                    Image(systemName: entry.product.symbol)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(CXTheme.nicotineAccent)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.product.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Text(entry.usedAt, style: .time)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let note = entry.note {
+                        Text(note)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                Text(entry.unit.formatted(quantity: entry.quantity))
+                    .font(.headline)
+                    .foregroundStyle(CXTheme.nicotineAccent)
+            }
+        }
+    }
+
     private var emptyState: some View {
         CXGlassCard {
             VStack(spacing: 16) {
@@ -440,6 +614,29 @@ struct TodayView: View {
             return CXTheme.caffeineAccent
         case .high, .sleepRisk:
             return CXTheme.warningAccent
+        }
+    }
+
+    private func exposureTint(for guidance: DailyExposureGuidance) -> Color {
+        switch guidance {
+        case .clear:
+            CXTheme.healthAccent
+        case .caffeineOnly:
+            CXTheme.caffeineAccent
+        case .nicotineOnly:
+            CXTheme.nicotineAccent
+        case .temporalOverlap, .sleepPriority:
+            CXTheme.warningAccent
+        }
+    }
+
+    private func exposureSymbol(for guidance: DailyExposureGuidance) -> String {
+        switch guidance {
+        case .clear: "checkmark.circle.fill"
+        case .caffeineOnly: "cup.and.saucer.fill"
+        case .nicotineOnly: "waveform.path.ecg"
+        case .temporalOverlap: "arrow.triangle.branch"
+        case .sleepPriority: "moon.zzz.fill"
         }
     }
 
@@ -520,9 +717,35 @@ struct TodayView: View {
     }
 }
 
+private enum TodayTimelineItem: Identifiable {
+    case caffeine(CaffeineEntry)
+    case nicotine(NicotineEntry)
+
+    var id: String {
+        switch self {
+        case .caffeine(let entry):
+            "caffeine-\(entry.id.uuidString)"
+        case .nicotine(let entry):
+            "nicotine-\(entry.id.uuidString)"
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .caffeine(let entry):
+            entry.consumedAt
+        case .nicotine(let entry):
+            entry.usedAt
+        }
+    }
+}
+
 #Preview {
     TodayView()
         .environment(SleepScheduleStore())
         .environment(CaffeineSensitivityStore())
-        .modelContainer(for: [CaffeineEntry.self, Drink.self], inMemory: true)
+        .modelContainer(
+            for: [CaffeineEntry.self, Drink.self, NicotineEntry.self],
+            inMemory: true
+        )
 }

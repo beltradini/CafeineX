@@ -3,7 +3,7 @@
 ## Delivered scope
 
 - The app launches into `TodayView` instead of the SwiftData template.
-- `CaffeineEntry` and `Drink` are the active SwiftData schema.
+- `CaffeineEntry` and `Drink` formed the V1 SwiftData baseline.
 - Manual and custom caffeine entries persist locally.
 - CafeineX writes authorized entries to Apple Health with an app entry identifier.
 - A 30-day Apple Health import links CafeineX-owned samples and imports external samples once.
@@ -13,15 +13,17 @@
 - Bedtime and the caffeine cutoff interval are user-configurable and persist across launches.
 - Personal response sensitivity adjusts guidance thresholds without changing exposure estimates or the 400 mg reference.
 
-## Phase 2 boundary
+## Phase 2 boundary — completed
 
-Nicotine and tobacco concepts are intentionally absent from the current persistence schema and UI. Phase 2 can add an exposure domain without changing `CaffeineEngine`:
+The original boundary kept nicotine out until the caffeine foundation was
+stable. Phase 2 is now implemented in `docs/PHASE_2_NICOTINE.md` with the same
+constraints:
 
-1. Add a separate `ExposureEvent` domain model with substance, route, amount, timestamp, source, and confidence.
-2. Keep caffeine and nicotine quantities on separate axes; do not combine their milligrams into one score.
-3. Build interaction windows over `CaffeineDose` and nicotine events in a new engine.
-4. Add any nicotine UI as a separate feature and keep language neutral or reduction-oriented.
-5. Do not write nicotine events to HealthKit unless Apple introduces a semantically correct data type.
+1. `NicotineEntry` remains a separate persisted event model.
+2. Caffeine and nicotine quantities stay on separate axes.
+3. `DailyExposureContext` combines timing windows, not amounts.
+4. Nicotine UI uses neutral, observational language.
+5. Nicotine events are not written to HealthKit without a semantically correct data type.
 
 ## Deliberately deferred
 

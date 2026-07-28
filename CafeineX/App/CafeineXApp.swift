@@ -14,7 +14,7 @@ struct CafeineXApp: App {
     @State private var sensitivityStore = CaffeineSensitivityStore()
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema(versionedSchema: CafeineXSchemaV1.self)
+        let schema = Schema(versionedSchema: CafeineXSchemaV2.self)
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {

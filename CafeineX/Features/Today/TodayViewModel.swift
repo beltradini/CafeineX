@@ -14,10 +14,14 @@ final class TodayViewModel {
     }
 
     private var engine: CaffeineEngine
+    private var sleepSchedule: SleepSchedule = .default
     private let healthKitService: any HealthKitProviding
 
     var entries: [CaffeineEntry] = []
+    var nicotineEntries: [NicotineEntry] = []
     var status: CaffeineStatus?
+    var nicotineStatus: NicotineStatus?
+    var dailyExposureContext: DailyExposureContext?
     var healthAccessState: HealthAccessState = .notRequested
     var healthMessage: String?
     var isSyncingHealth = false
@@ -35,8 +39,12 @@ final class TodayViewModel {
         refreshHealthAccessState()
     }
 
-    func load(entries: [CaffeineEntry]) {
+    func load(
+        entries: [CaffeineEntry],
+        nicotineEntries: [NicotineEntry] = []
+    ) {
         self.entries = entries
+        self.nicotineEntries = nicotineEntries
         recalculateStatus()
     }
 
@@ -44,6 +52,7 @@ final class TodayViewModel {
         sleepSchedule: SleepSchedule,
         sensitivity: CaffeineSensitivityProfile
     ) {
+        self.sleepSchedule = sleepSchedule
         engine = CaffeineEngine(
             configuration: CaffeineEngine.Configuration(
                 sleepSchedule: sleepSchedule,
@@ -140,6 +149,47 @@ final class TodayViewModel {
         return true
     }
 
+    @discardableResult
+    func addNicotine(
+        product: NicotineProduct,
+        quantity: Double,
+        unit: NicotineUnit,
+        usedAt: Date = .now,
+        note: String? = nil,
+        context: ModelContext
+    ) -> Bool {
+        guard product.allowedUnits.contains(unit),
+              quantity.isFinite,
+              quantity > 0,
+              quantity <= 1_000 else {
+            healthMessage = "Enter a valid nicotine amount and unit."
+            return false
+        }
+
+        let entry = NicotineEntry(
+            product: product,
+            quantity: quantity,
+            unit: unit,
+            usedAt: min(usedAt, .now),
+            source: .manual,
+            note: note
+        )
+        context.insert(entry)
+
+        do {
+            try context.save()
+        } catch {
+            context.delete(entry)
+            healthMessage = "CafeineX could not save this nicotine entry: \(error.localizedDescription)"
+            return false
+        }
+
+        nicotineEntries.append(entry)
+        nicotineEntries.sort { $0.usedAt > $1.usedAt }
+        recalculateStatus()
+        return true
+    }
+
     private func saveToHealthKit(_ entry: CaffeineEntry, context: ModelContext) async {
         guard healthAccessState == .writeEnabled else {
             healthMessage = "Saved on this device. Apple Health write access is off."
@@ -198,5 +248,13 @@ final class TodayViewModel {
 
     private func recalculateStatus() {
         status = engine.makeStatus(doses: entries.map(\.dose))
+        let context = DailyExposureContext.make(
+            caffeineDoses: entries.map(\.dose),
+            nicotineEvents: nicotineEntries.map(\.event),
+            sleepSchedule: sleepSchedule,
+            caffeineEngine: engine
+        )
+        nicotineStatus = context.nicotineStatus
+        dailyExposureContext = context
     }
 }
