@@ -1,0 +1,37 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+script_directory=${0:A:h}
+project_root=${script_directory:h}
+final_directory="$project_root/Branding/AppIconFinal"
+
+icon_files=(
+  "$final_directory/CafeineX-AppIcon-Default.png"
+  "$final_directory/CafeineX-AppIcon-Dark.png"
+  "$final_directory/CafeineX-AppIcon-Tinted.png"
+)
+
+for icon_file in "${icon_files[@]}"; do
+  if [[ ! -f "$icon_file" ]]; then
+    print -u2 "Missing app icon: $icon_file"
+    exit 1
+  fi
+
+  metadata=$(sips -g pixelWidth -g pixelHeight -g hasAlpha "$icon_file")
+
+  if [[ "$metadata" != *"pixelWidth: 1024"* || "$metadata" != *"pixelHeight: 1024"* ]]; then
+    print -u2 "App icon must be 1024 x 1024: $icon_file"
+    exit 1
+  fi
+
+  if [[ "$metadata" != *"hasAlpha: no"* ]]; then
+    print -u2 "App icon must not contain alpha: $icon_file"
+    exit 1
+  fi
+
+  print "Validated $(basename "$icon_file")"
+done
+
+plutil -p "$project_root/CafeineX/Assets.xcassets/AppIcon.appiconset/Contents.json" >/dev/null
+print "Validated AppIcon Contents.json"
