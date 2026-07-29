@@ -1,14 +1,11 @@
 import SwiftUI
 
 struct GuidanceSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
     let sleepScheduleStore: SleepScheduleStore
     let sensitivityStore: CaffeineSensitivityStore
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 Section {
                     DatePicker(
                         "Bedtime",
@@ -51,18 +48,9 @@ struct GuidanceSettingsView: View {
                         sensitivityStore.reset()
                     }
                 }
-            }
-            .navigationTitle("Personal Guidance")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
         }
-        .presentationDetents([.medium, .large])
+        .navigationTitle("Personal Guidance")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var bedtimeBinding: Binding<Date> {
@@ -88,8 +76,10 @@ struct GuidanceSettingsView: View {
 }
 
 #Preview {
-    GuidanceSettingsView(
-        sleepScheduleStore: SleepScheduleStore(),
-        sensitivityStore: CaffeineSensitivityStore()
-    )
+    NavigationStack {
+        GuidanceSettingsView(
+            sleepScheduleStore: SleepScheduleStore(),
+            sensitivityStore: CaffeineSensitivityStore()
+        )
+    }
 }

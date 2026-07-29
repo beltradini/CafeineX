@@ -5,7 +5,7 @@ import SwiftData
 
 @MainActor
 @Observable
-final class TodayViewModel {
+final class HomeViewModel {
     enum HealthAccessState: Equatable {
         case unavailable
         case notRequested

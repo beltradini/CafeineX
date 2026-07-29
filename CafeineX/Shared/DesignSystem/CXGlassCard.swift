@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct CXGlassCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     private let content: Content
     private let cornerRadius: CGFloat
 
@@ -27,11 +29,21 @@ struct CXGlassCard<Content: View>: View {
                     .fill(.ultraThinMaterial)
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? .white.opacity(0.16)
+                                    : .white.opacity(0.72),
+                                lineWidth: 1
+                            )
                     }
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.22), radius: 24, x: 0, y: 14)
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.22 : 0.09),
+                radius: 24,
+                x: 0,
+                y: 14
+            )
             .modifier(CXLiquidGlassModifier(cornerRadius: cornerRadius))
     }
 }

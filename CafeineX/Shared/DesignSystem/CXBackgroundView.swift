@@ -8,12 +8,14 @@
 import SwiftUI
 
 struct CXBackgroundView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    CXTheme.backgroundTop,
-                    CXTheme.backgroundBottom
+                    backgroundTop,
+                    backgroundBottom
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -32,5 +34,17 @@ struct CXBackgroundView: View {
                 .blur(radius: 90)
                 .offset(x: 140, y: 260)
         }
+    }
+
+    private var backgroundTop: Color {
+        colorScheme == .dark
+            ? CXTheme.backgroundTop
+            : Color(red: 0.96, green: 0.95, blue: 0.93)
+    }
+
+    private var backgroundBottom: Color {
+        colorScheme == .dark
+            ? CXTheme.backgroundBottom
+            : Color(red: 0.91, green: 0.94, blue: 0.94)
     }
 }

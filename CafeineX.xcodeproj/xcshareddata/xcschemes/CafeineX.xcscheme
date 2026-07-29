@@ -41,6 +41,16 @@
                ReferencedContainer = "container:CafeineX.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9D01A8172FC3AD3500B0709A"
+               BuildableName = "CafeineXUITests.xctest"
+               BlueprintName = "CafeineXUITests"
+               ReferencedContainer = "container:CafeineX.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

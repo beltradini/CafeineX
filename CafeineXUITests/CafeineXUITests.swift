@@ -23,14 +23,40 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testPrimaryNavigationAndLandscapeLayout() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        let home = navigationButton(named: "Home", in: app)
+        let history = navigationButton(named: "History", in: app)
+        let profile = navigationButton(named: "Profile", in: app)
+        let search = navigationButton(named: "Search", in: app)
+
+        XCTAssertTrue(home.waitForExistence(timeout: 5))
+        XCTAssertTrue(history.waitForExistence(timeout: 3))
+        XCTAssertTrue(profile.waitForExistence(timeout: 3))
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
+
+        history.tap()
+        let historyFilters = app.staticTexts["Filters"]
+        XCTAssertTrue(historyFilters.waitForExistence(timeout: 3))
+
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(historyFilters.waitForExistence(timeout: 3))
+        XCUIDevice.shared.orientation = .portrait
+    }
+
+    @MainActor
+    private func navigationButton(
+        named name: String,
+        in app: XCUIApplication
+    ) -> XCUIElement {
+        let tabBarButton = app.tabBars.buttons[name]
+        if tabBarButton.waitForExistence(timeout: 1) {
+            return tabBarButton
+        }
+
+        return app.buttons[name].firstMatch
     }
 
     @MainActor

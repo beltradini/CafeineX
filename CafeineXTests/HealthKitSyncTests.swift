@@ -34,7 +34,7 @@ struct HealthKitSyncTests {
                 displayName: "Tea"
             ),
         ])
-        let viewModel = TodayViewModel(engine: CaffeineEngine(), healthKitService: healthStore)
+        let viewModel = HomeViewModel(engine: CaffeineEngine(), healthKitService: healthStore)
         viewModel.load(entries: [localEntry])
 
         await viewModel.synchronizeHealthKit(context: context)
