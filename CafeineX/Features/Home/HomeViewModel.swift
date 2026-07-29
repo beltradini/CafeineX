@@ -6,6 +6,18 @@ import SwiftData
 @MainActor
 @Observable
 final class HomeViewModel {
+    private struct DrinkUsageSnapshot {
+        let metadata: DrinkMetadata
+        let useCount: Int
+        let lastUsedAt: Date?
+    }
+
+    struct Feedback: Equatable, Identifiable {
+        let id = UUID()
+        let entryID: UUID
+        let message: String
+    }
+
     enum HealthAccessState: Equatable {
         case unavailable
         case notRequested
@@ -16,6 +28,9 @@ final class HomeViewModel {
     private var engine: CaffeineEngine
     private var sleepSchedule: SleepSchedule = .default
     private let healthKitService: any HealthKitProviding
+    private var pendingHealthWrites: [UUID: Task<Void, Never>] = [:]
+    private var pendingDrinkUsage: [UUID: DrinkUsageSnapshot] = [:]
+    private var pendingOutboxItems: [UUID: HealthSyncOutboxItem] = [:]
 
     var entries: [CaffeineEntry] = []
     var nicotineEntries: [NicotineEntry] = []
@@ -26,6 +41,7 @@ final class HomeViewModel {
     var healthMessage: String?
     var isSyncingHealth = false
     var lastHealthSyncDate: Date?
+    var feedback: Feedback?
 
     init() {
         self.engine = CaffeineEngine()
@@ -102,10 +118,30 @@ final class HomeViewModel {
             let samples = try await healthKitService.fetchCaffeineSamples(from: startDate, to: .now)
             let importedCount = reconcile(samples: samples, context: context)
             try context.save()
+
+            var uploadedCount = 0
+            if healthAccessState == .writeEnabled {
+                let outboxItems = (try? context.fetch(
+                    FetchDescriptor<HealthSyncOutboxItem>()
+                )) ?? []
+                let pendingIDs = Set(outboxItems.map(\.entryID))
+                let pendingEntries = entries.filter {
+                    pendingIDs.contains($0.id) && $0.healthKitUUID == nil
+                }
+                for entry in pendingEntries {
+                    await saveToHealthKit(entry, context: context)
+                    if entry.healthKitUUID != nil {
+                        uploadedCount += 1
+                    }
+                }
+            }
+
             lastHealthSyncDate = .now
-            healthMessage = importedCount == 0
-                ? "Apple Health is up to date."
-                : "Imported \(importedCount) caffeine \(importedCount == 1 ? "entry" : "entries") from Apple Health."
+            if importedCount == 0, uploadedCount == 0 {
+                healthMessage = "Apple Health is up to date."
+            } else {
+                healthMessage = "Apple Health updated: \(importedCount) imported, \(uploadedCount) uploaded."
+            }
         } catch {
             healthMessage = error.localizedDescription
         }
@@ -116,6 +152,7 @@ final class HomeViewModel {
         name: String,
         caffeineMG: Double,
         consumedAt: Date = .now,
+        drink: Drink? = nil,
         context: ModelContext
     ) -> Bool {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -130,23 +167,89 @@ final class HomeViewModel {
             consumedAt: min(consumedAt, .now),
             source: .manual
         )
+        let outboxItem = HealthSyncOutboxItem(entryID: entry.id)
 
         context.insert(entry)
+        context.insert(outboxItem)
         do {
             try context.save()
         } catch {
+            context.delete(outboxItem)
             context.delete(entry)
             healthMessage = "CafeineX could not save this entry: \(error.localizedDescription)"
             return false
         }
 
         entries.append(entry)
+        pendingOutboxItems[entry.id] = outboxItem
+        entries.sort { $0.consumedAt > $1.consumedAt }
+        if let drink {
+            let metadata = DrinkLibrary.metadata(
+                for: drink,
+                in: [],
+                context: context
+            )
+            pendingDrinkUsage[entry.id] = DrinkUsageSnapshot(
+                metadata: metadata,
+                useCount: metadata.useCount,
+                lastUsedAt: metadata.lastUsedAt
+            )
+            DrinkLibrary.recordUse(
+                of: drink,
+                at: entry.consumedAt,
+                metadataValues: [metadata],
+                context: context
+            )
+        }
         recalculateStatus()
+        feedback = Feedback(entryID: entry.id, message: "\(normalizedName) added")
 
-        Task {
-            await saveToHealthKit(entry, context: context)
+        pendingHealthWrites[entry.id] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled, let self else { return }
+            await self.saveToHealthKit(entry, context: context)
+            self.pendingHealthWrites[entry.id] = nil
+            self.pendingDrinkUsage[entry.id] = nil
         }
         return true
+    }
+
+    @discardableResult
+    func undoLastCaffeineAdd(context: ModelContext) -> Bool {
+        guard let feedback,
+              let entry = entries.first(where: { $0.id == feedback.entryID }),
+              entry.healthKitUUID == nil else {
+            return false
+        }
+
+        pendingHealthWrites[entry.id]?.cancel()
+        pendingHealthWrites[entry.id] = nil
+        if let outboxItem = pendingOutboxItems.removeValue(forKey: entry.id)
+            ?? outboxItem(for: entry.id, context: context) {
+            context.delete(outboxItem)
+        }
+        if let usage = pendingDrinkUsage.removeValue(forKey: entry.id) {
+            usage.metadata.useCount = usage.useCount
+            usage.metadata.lastUsedAt = usage.lastUsedAt
+            usage.metadata.updatedAt = .now
+        }
+        context.delete(entry)
+
+        do {
+            try context.save()
+        } catch {
+            healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
+            return false
+        }
+
+        entries.removeAll { $0.id == entry.id }
+        self.feedback = nil
+        recalculateStatus()
+        return true
+    }
+
+    func dismissFeedback() {
+        feedback = nil
     }
 
     @discardableResult
@@ -204,6 +307,10 @@ final class HomeViewModel {
                 displayName: entry.drinkName
             )
             entry.healthKitUUID = sample.id
+            if let outboxItem = pendingOutboxItems.removeValue(forKey: entry.id)
+                ?? outboxItem(for: entry.id, context: context) {
+                context.delete(outboxItem)
+            }
             try context.save()
             healthMessage = nil
         } catch {
@@ -256,5 +363,15 @@ final class HomeViewModel {
         )
         nicotineStatus = context.nicotineStatus
         dailyExposureContext = context
+    }
+
+    private func outboxItem(
+        for entryID: UUID,
+        context: ModelContext
+    ) -> HealthSyncOutboxItem? {
+        let descriptor = FetchDescriptor<HealthSyncOutboxItem>(
+            predicate: #Predicate { $0.entryID == entryID }
+        )
+        return try? context.fetch(descriptor).first
     }
 }

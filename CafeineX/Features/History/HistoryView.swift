@@ -393,7 +393,15 @@ struct HistoryView: View {
     }
     .environment(QuickAddCoordinator())
     .modelContainer(
-        for: [CaffeineEntry.self, Drink.self, NicotineEntry.self],
+        for: [
+            CaffeineEntry.self,
+            Drink.self,
+            NicotineEntry.self,
+            UserProfile.self,
+            AwarenessCheckIn.self,
+            DrinkMetadata.self,
+            HealthSyncOutboxItem.self,
+        ],
         inMemory: true
     )
 }

@@ -1,7 +1,13 @@
+import SwiftData
 import SwiftUI
 
 enum QuickAddRequest {
-    case caffeine(name: String, milligrams: Double, date: Date)
+    case caffeine(
+        drinkID: UUID?,
+        name: String,
+        milligrams: Double,
+        date: Date
+    )
     case nicotine(
         product: NicotineProduct,
         quantity: Double,
@@ -12,21 +18,17 @@ enum QuickAddRequest {
 }
 
 struct QuickAddSheet: View {
-    private struct CaffeinePreset: Identifiable {
-        let name: String
-        let milligrams: Double
-        let symbol: String
-
-        var id: String { name }
-    }
-
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Drink.name) private var drinks: [Drink]
+    @Query private var drinkMetadata: [DrinkMetadata]
     @FocusState private var focusedField: Field?
 
     @State private var kind: QuickAddKind
     @State private var caffeineName = "Espresso"
     @State private var caffeineMG = 64.0
     @State private var caffeineDate = Date.now
+    @State private var selectedDrinkID: UUID?
     @State private var nicotineProduct = NicotineProduct.cigarette
     @State private var nicotineQuantity = 1.0
     @State private var nicotineUnit = NicotineUnit.pieces
@@ -41,13 +43,6 @@ struct QuickAddSheet: View {
         case nicotineAmount
         case nicotineNote
     }
-
-    private let caffeinePresets = [
-        CaffeinePreset(name: "Espresso", milligrams: 64, symbol: "cup.and.saucer.fill"),
-        CaffeinePreset(name: "Americano", milligrams: 150, symbol: "mug.fill"),
-        CaffeinePreset(name: "Latte", milligrams: 120, symbol: "takeoutbag.and.cup.and.straw.fill"),
-        CaffeinePreset(name: "Cold Brew", milligrams: 200, symbol: "snowflake"),
-    ]
 
     init(
         initialKind: QuickAddKind = .caffeine,
@@ -108,6 +103,13 @@ struct QuickAddSheet: View {
                     nicotineUnit = product.defaultUnit
                 }
             }
+            .task {
+                DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+                await Task.yield()
+                if let first = favoriteDrinks.first ?? activeDrinks.first {
+                    select(first)
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -118,24 +120,57 @@ struct QuickAddSheet: View {
             Section {
                 ScrollView(.horizontal) {
                     HStack(spacing: 10) {
-                        ForEach(caffeinePresets) { preset in
+                        ForEach(favoriteDrinks) { drink in
                             Button {
-                                caffeineName = preset.name
-                                caffeineMG = preset.milligrams
+                                select(drink)
                             } label: {
-                                Label(preset.name, systemImage: preset.symbol)
+                                Label(drink.name, systemImage: drink.category.symbol)
                                     .font(.subheadline.weight(.semibold))
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 10)
                             }
                             .buttonStyle(.bordered)
-                            .accessibilityHint("\(Int(preset.milligrams)) milligrams")
+                            .tint(
+                                selectedDrinkID == drink.id
+                                    ? CXTheme.caffeineAccent
+                                    : Color.secondary
+                            )
+                            .accessibilityHint("\(Int(drink.caffeineMG)) milligrams")
                         }
                     }
                 }
                 .scrollIndicators(.hidden)
             } header: {
                 Text("Favorites")
+            } footer: {
+                if favoriteDrinks.isEmpty {
+                    Text("Mark drinks as favorites in My Drinks to place them here.")
+                }
+            }
+
+            Section {
+                Picker("Saved drink", selection: $selectedDrinkID) {
+                    Text("Custom entry")
+                        .tag(UUID?.none)
+                    ForEach(activeDrinks) { drink in
+                        Label(drink.name, systemImage: drink.category.symbol)
+                            .tag(Optional(drink.id))
+                    }
+                }
+                .onChange(of: selectedDrinkID) { _, identifier in
+                    guard let identifier,
+                          let drink = activeDrinks.first(where: { $0.id == identifier }) else {
+                        return
+                    }
+                    caffeineName = drink.name
+                    caffeineMG = drink.caffeineMG
+                }
+
+                NavigationLink {
+                    MyDrinksView()
+                } label: {
+                    Label("Manage My Drinks", systemImage: "slider.horizontal.3")
+                }
             }
 
             Section {
@@ -232,6 +267,7 @@ struct QuickAddSheet: View {
         case .caffeine:
             didSave = onSave(
                 .caffeine(
+                    drinkID: matchedDrinkID,
                     name: caffeineName,
                     milligrams: caffeineMG,
                     date: caffeineDate
@@ -252,6 +288,53 @@ struct QuickAddSheet: View {
         if didSave {
             dismiss()
         }
+    }
+
+    private var activeDrinks: [Drink] {
+        drinks
+            .filter {
+                !(DrinkLibrary.existingMetadata(
+                    for: $0,
+                    in: drinkMetadata
+                )?.isArchived ?? false)
+            }
+            .sorted {
+                if $0.isFavorite != $1.isFavorite {
+                    return $0.isFavorite && !$1.isFavorite
+                }
+                let lhsLastUsed = DrinkLibrary.existingMetadata(
+                    for: $0,
+                    in: drinkMetadata
+                )?.lastUsedAt
+                let rhsLastUsed = DrinkLibrary.existingMetadata(
+                    for: $1,
+                    in: drinkMetadata
+                )?.lastUsedAt
+                if lhsLastUsed != rhsLastUsed {
+                    return (lhsLastUsed ?? .distantPast) > (rhsLastUsed ?? .distantPast)
+                }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+    }
+
+    private var favoriteDrinks: [Drink] {
+        activeDrinks.filter(\.isFavorite)
+    }
+
+    private var matchedDrinkID: UUID? {
+        guard let selectedDrinkID,
+              let drink = activeDrinks.first(where: { $0.id == selectedDrinkID }),
+              drink.name == caffeineName,
+              abs(drink.caffeineMG - caffeineMG) < 0.01 else {
+            return nil
+        }
+        return selectedDrinkID
+    }
+
+    private func select(_ drink: Drink) {
+        selectedDrinkID = drink.id
+        caffeineName = drink.name
+        caffeineMG = drink.caffeineMG
     }
 }
 

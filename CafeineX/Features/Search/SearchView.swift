@@ -280,7 +280,15 @@ struct SearchView: View {
     .environment(CaffeineSensitivityStore())
     .environment(AppearanceStore())
     .modelContainer(
-        for: [CaffeineEntry.self, Drink.self, NicotineEntry.self],
+        for: [
+            CaffeineEntry.self,
+            Drink.self,
+            NicotineEntry.self,
+            UserProfile.self,
+            AwarenessCheckIn.self,
+            DrinkMetadata.self,
+            HealthSyncOutboxItem.self,
+        ],
         inMemory: true
     )
 }

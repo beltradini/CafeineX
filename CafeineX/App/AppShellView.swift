@@ -11,6 +11,7 @@ enum AppTab: Hashable {
 struct AppShellView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppearanceStore.self) private var appearanceStore
+    @Query private var drinks: [Drink]
 
     @State private var selectedTab = AppTab.home
     @State private var quickAddCoordinator = QuickAddCoordinator()
@@ -56,11 +57,14 @@ struct AppShellView: View {
 
     private func save(_ request: QuickAddRequest) -> Bool {
         switch request {
-        case .caffeine(let name, let milligrams, let date):
+        case .caffeine(let drinkID, let name, let milligrams, let date):
             homeViewModel.addDrink(
                 name: name,
                 caffeineMG: milligrams,
                 consumedAt: date,
+                drink: drinkID.flatMap { identifier in
+                    drinks.first { $0.id == identifier }
+                },
                 context: modelContext
             )
         case .nicotine(let product, let quantity, let unit, let date, let note):
@@ -82,7 +86,15 @@ struct AppShellView: View {
         .environment(CaffeineSensitivityStore())
         .environment(AppearanceStore())
         .modelContainer(
-            for: [CaffeineEntry.self, Drink.self, NicotineEntry.self],
+            for: [
+                CaffeineEntry.self,
+                Drink.self,
+                NicotineEntry.self,
+                UserProfile.self,
+                AwarenessCheckIn.self,
+                DrinkMetadata.self,
+                HealthSyncOutboxItem.self,
+            ],
             inMemory: true
         )
 }

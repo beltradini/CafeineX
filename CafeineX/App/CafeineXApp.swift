@@ -15,7 +15,7 @@ struct CafeineXApp: App {
     @State private var appearanceStore = AppearanceStore()
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema(versionedSchema: CafeineXSchemaV2.self)
+        let schema = Schema(versionedSchema: CafeineXSchemaV3.self)
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {

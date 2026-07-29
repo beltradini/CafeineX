@@ -38,12 +38,32 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 3))
 
         history.tap()
-        let historyFilters = app.staticTexts["Filters"]
-        XCTAssertTrue(historyFilters.waitForExistence(timeout: 3))
+        let historyNavigationBar = app.navigationBars["History"]
+        XCTAssertTrue(historyNavigationBar.waitForExistence(timeout: 3))
 
         XCUIDevice.shared.orientation = .landscapeLeft
-        XCTAssertTrue(historyFilters.waitForExistence(timeout: 3))
+        XCTAssertTrue(historyNavigationBar.waitForExistence(timeout: 3))
         XCUIDevice.shared.orientation = .portrait
+    }
+
+    @MainActor
+    func testProfileOpensPersonalDrinkLibrary() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let profile = navigationButton(named: "Profile", in: app)
+        XCTAssertTrue(profile.waitForExistence(timeout: 5))
+        profile.tap()
+
+        XCTAssertTrue(app.staticTexts["Mindful Streaks"].waitForExistence(timeout: 3))
+
+        let myDrinks = app.staticTexts["My Drinks"].firstMatch
+        XCTAssertTrue(myDrinks.waitForExistence(timeout: 3))
+        myDrinks.tap()
+
+        XCTAssertTrue(app.navigationBars["My Drinks"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["New Drink"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Archived Drinks"].waitForExistence(timeout: 3))
     }
 
     @MainActor

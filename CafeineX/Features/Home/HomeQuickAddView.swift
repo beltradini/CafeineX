@@ -1,21 +1,20 @@
 import SwiftUI
 
 struct HomeQuickAddView: View {
-    let addCaffeine: (String, Double) -> Void
+    let favoriteDrinks: [Drink]
+    let addDrink: (Drink) -> Void
     let openQuickAdd: (QuickAddKind) -> Void
-
-    private let presets: [(name: String, mg: Double, symbol: String)] = [
-        ("Espresso", 64, "cup.and.saucer.fill"),
-        ("Americano", 150, "mug.fill"),
-        ("Latte", 120, "takeoutbag.and.cup.and.straw.fill"),
-        ("Cold Brew", 200, "snowflake"),
-    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Quick Add")
-                    .font(.title2.bold())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Favorites")
+                        .font(.title2.bold())
+                    Text("One tap logs it now")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
@@ -25,46 +24,75 @@ struct HomeQuickAddView: View {
                 .font(.subheadline.weight(.semibold))
             }
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 140), spacing: 12)],
-                spacing: 12
-            ) {
-                ForEach(presets, id: \.name) { preset in
-                    Button {
-                        addCaffeine(preset.name, preset.mg)
-                    } label: {
-                        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
-                            VStack(spacing: 8) {
-                                Image(systemName: preset.symbol)
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(CXTheme.caffeineAccent)
-
-                                Text(preset.name)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-
-                                Text("\(Int(preset.mg)) mg")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 76)
+            if favoriteDrinks.isEmpty {
+                CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                    ContentUnavailableView {
+                        Label("No favorite drinks", systemImage: "star")
+                    } description: {
+                        Text("Choose favorites from your drink library.")
+                    } actions: {
+                        NavigationLink("Manage My Drinks") {
+                            MyDrinksView()
                         }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add \(preset.name), \(Int(preset.mg)) milligrams")
-                    .accessibilityHint("Logs it at the current time")
+                }
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 140), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(favoriteDrinks.prefix(6)) { drink in
+                        Button {
+                            addDrink(drink)
+                        } label: {
+                            CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                                VStack(spacing: 8) {
+                                    Image(systemName: drink.category.symbol)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(CXTheme.caffeineAccent)
+
+                                    Text(drink.name)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+
+                                    Text("\(Int(drink.caffeineMG.rounded())) mg")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: 76)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(
+                            "Add \(drink.name), \(Int(drink.caffeineMG)) milligrams"
+                        )
+                        .accessibilityHint("Logs it at the current time")
+                    }
                 }
             }
 
-            Button {
-                openQuickAdd(.nicotine)
-            } label: {
-                Label("Log nicotine", systemImage: "waveform.path.ecg")
-                    .frame(maxWidth: .infinity)
+            HStack {
+                Button {
+                    openQuickAdd(.nicotine)
+                } label: {
+                    Label("Log nicotine", systemImage: "waveform.path.ecg")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(CXTheme.nicotineAccent)
+
+                NavigationLink {
+                    MyDrinksView()
+                } label: {
+                    Label("My Drinks", systemImage: "mug.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(CXTheme.caffeineAccent)
             }
-            .buttonStyle(.bordered)
-            .tint(CXTheme.nicotineAccent)
         }
     }
 }

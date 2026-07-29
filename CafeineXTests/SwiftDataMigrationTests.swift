@@ -62,7 +62,7 @@ struct SwiftDataMigrationTests {
             try context.save()
         }
 
-        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV1.self)
+        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV3.self)
         let versionedConfiguration = ModelConfiguration(
             schema: versionedSchema,
             url: storeURL,
@@ -98,12 +98,13 @@ struct SwiftDataMigrationTests {
     }
 
     @Test func migrationPlanDeclaresCurrentSchemaAsItsBaseline() {
-        #expect(CafeineXMigrationPlan.schemas.count == 2)
+        #expect(CafeineXMigrationPlan.schemas.count == 3)
         #expect(CafeineXMigrationPlan.schemas.first == CafeineXSchemaV1.self)
-        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV2.self)
-        #expect(CafeineXMigrationPlan.stages.count == 1)
+        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV3.self)
+        #expect(CafeineXMigrationPlan.stages.count == 2)
         #expect(CafeineXSchemaV1.versionIdentifier == Schema.Version(1, 0, 0))
         #expect(CafeineXSchemaV2.versionIdentifier == Schema.Version(2, 0, 0))
+        #expect(CafeineXSchemaV3.versionIdentifier == Schema.Version(3, 0, 0))
     }
 
     @Test func v1StoreMigratesToV2AndAcceptsNicotineEntries() throws {
@@ -178,5 +179,72 @@ struct SwiftDataMigrationTests {
         #expect(persistedNicotine.product == .pouch)
         #expect(persistedNicotine.quantity == 4)
         #expect(persistedNicotine.unit == .milligrams)
+    }
+
+    @Test func v2StoreMigratesToV3AndAcceptsProfileAndCheckIns() throws {
+        let storeDirectory = FileManager.default.temporaryDirectory
+            .appending(path: "CafeineXV3MigrationTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let storeURL = storeDirectory.appending(path: "CafeineX.store")
+        try FileManager.default.createDirectory(
+            at: storeDirectory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: storeDirectory)
+        }
+
+        let drinkID = UUID()
+        do {
+            let schema = Schema(versionedSchema: CafeineXSchemaV2.self)
+            let configuration = ModelConfiguration(
+                schema: schema,
+                url: storeURL,
+                cloudKitDatabase: .none
+            )
+            let container = try ModelContainer(
+                for: schema,
+                migrationPlan: CafeineXMigrationPlan.self,
+                configurations: [configuration]
+            )
+            container.mainContext.insert(
+                Drink(
+                    id: drinkID,
+                    name: "V2 Tea",
+                    caffeineMG: 40,
+                    category: .tea,
+                    isFavorite: true
+                )
+            )
+            try container.mainContext.save()
+        }
+
+        let schema = Schema(versionedSchema: CafeineXSchemaV3.self)
+        let configuration = ModelConfiguration(
+            schema: schema,
+            url: storeURL,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: CafeineXMigrationPlan.self,
+            configurations: [configuration]
+        )
+        let context = container.mainContext
+
+        let migratedDrink = try #require(
+            context.fetch(FetchDescriptor<Drink>()).first
+        )
+        #expect(migratedDrink.id == drinkID)
+        #expect(
+            try context.fetchCount(FetchDescriptor<DrinkMetadata>()) == 0
+        )
+
+        context.insert(UserProfile(displayName: "Alex", goal: .protectSleep))
+        context.insert(AwarenessCheckIn(day: Date(timeIntervalSince1970: 1_753_722_000)))
+        context.insert(DrinkMetadata(drinkID: migratedDrink.id))
+        try context.save()
+
+        #expect(try context.fetchCount(FetchDescriptor<UserProfile>()) == 1)
+        #expect(try context.fetchCount(FetchDescriptor<AwarenessCheckIn>()) == 1)
     }
 }

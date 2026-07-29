@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeTimelineView: View {
     let items: [ExposureItem]
     let openQuickAdd: () -> Void
+    let repeatItem: (ExposureItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -22,9 +23,22 @@ struct HomeTimelineView: View {
                 }
             } else {
                 ForEach(items) { item in
-                    CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
-                        ExposureRow(item: item)
+                    NavigationLink {
+                        ExposureDetailView(item: item)
+                    } label: {
+                        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                            ExposureRow(item: item)
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            repeatItem(item)
+                        } label: {
+                            Label("Log Again", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .accessibilityHint("Open details. Long press to log again.")
                 }
             }
         }

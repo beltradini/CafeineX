@@ -44,4 +44,24 @@ enum DrinkCategory: String, Codable, Sendable, CaseIterable {
     case tea
     case energyDrink
     case custom
+
+    var title: String {
+        switch self {
+        case .coffee: "Coffee"
+        case .espresso: "Espresso"
+        case .tea: "Tea"
+        case .energyDrink: "Energy drink"
+        case .custom: "Custom"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .coffee: "mug.fill"
+        case .espresso: "cup.and.saucer.fill"
+        case .tea: "leaf.fill"
+        case .energyDrink: "bolt.fill"
+        case .custom: "sparkles"
+        }
+    }
 }

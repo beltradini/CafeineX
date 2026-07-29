@@ -2,15 +2,22 @@ import SwiftData
 import SwiftUI
 
 struct ProfileView: View {
-    @Environment(QuickAddCoordinator.self) private var quickAddCoordinator
+    @Environment(\.modelContext) private var modelContext
     @Environment(SleepScheduleStore.self) private var sleepScheduleStore
     @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
     @Environment(AppearanceStore.self) private var appearanceStore
 
+    @Query private var profiles: [UserProfile]
     @Query private var caffeineEntries: [CaffeineEntry]
     @Query private var nicotineEntries: [NicotineEntry]
+    @Query private var checkIns: [AwarenessCheckIn]
+    @Query private var drinks: [Drink]
+    @Query private var drinkMetadata: [DrinkMetadata]
 
     @Bindable var viewModel: HomeViewModel
+    @State private var editingProfile: UserProfile?
+
+    private let streakEngine = StreakEngine()
 
     var body: some View {
         ZStack {
@@ -18,6 +25,8 @@ struct ProfileView: View {
 
             List {
                 profileHeader
+                streakSection
+                librarySection
 
                 Section("Personalization") {
                     NavigationLink {
@@ -57,6 +66,14 @@ struct ProfileView: View {
                             tint: CXTheme.healthAccent
                         )
                     }
+
+                    settingsRow(
+                        title: "Apple ID Sync",
+                        subtitle: "Local profile ready • Not connected",
+                        symbol: "person.crop.circle.badge.checkmark",
+                        tint: .primary
+                    )
+                    .accessibilityHint("Sign in with Apple will be added in a future release")
                 }
 
                 Section("Data") {
@@ -74,8 +91,8 @@ struct ProfileView: View {
 
                 Section("About") {
                     LabeledContent("App", value: "CafeineX")
-                    LabeledContent("Data model", value: "SwiftData V2")
-                    LabeledContent("Purpose", value: "Exposure guidance")
+                    LabeledContent("Data model", value: "SwiftData V3")
+                    LabeledContent("Purpose", value: "Mindful exposure guidance")
                 }
             }
             .listStyle(.insetGrouped)
@@ -86,47 +103,116 @@ struct ProfileView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                QuickAddToolbarButton()
+            if let profile {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") {
+                        editingProfile = profile
+                    }
+                }
             }
+        }
+        .sheet(item: $editingProfile) { profile in
+            EditProfileView(profile: profile)
+        }
+        .task {
+            ensureProfileExists()
+            DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
         }
     }
 
     private var profileHeader: some View {
         Section {
-            VStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [CXTheme.caffeineAccent, CXTheme.nicotineAccent],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 82, height: 82)
-
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(.white)
+            Button {
+                if let profile {
+                    editingProfile = profile
                 }
-                .accessibilityHidden(true)
+            } label: {
+                VStack(spacing: 14) {
+                    ProfileAvatarView(data: profile?.avatarData)
 
-                VStack(spacing: 4) {
-                    Text("Your CafeineX")
-                        .font(.title2.bold())
-                    Text("Guidance tuned to your schedule and preferences")
+                    VStack(spacing: 4) {
+                        Text(profileName)
+                            .font(.title2.bold())
+                            .foregroundStyle(.primary)
+
+                        Label(
+                            profile?.goal.title ?? ProfileGoal.protectSleep.title,
+                            systemImage: profile?.goal.symbol ?? ProfileGoal.protectSleep.symbol
+                        )
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .buttonStyle(.plain)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .accessibilityElement(children: .combine)
+            .accessibilityHint("Edit name, photo, and goal")
         }
+    }
+
+    private var streakSection: some View {
+        Section("Mindful Streaks") {
+            HStack(spacing: 12) {
+                streakMetric(
+                    value: streakSummary.awarenessDays,
+                    title: "Awareness",
+                    symbol: "brain.head.profile",
+                    tint: CXTheme.healthAccent
+                )
+
+                streakMetric(
+                    value: streakSummary.sleepProtectionDays,
+                    title: "Sleep protection",
+                    symbol: "moon.stars.fill",
+                    tint: CXTheme.nicotineAccent
+                )
+            }
+
+            Text("Awareness counts reviewed days. Sleep protection counts completed, reviewed days without caffeine after your cutoff. Missing data never counts as success.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var librarySection: some View {
+        Section("Your Library") {
+            NavigationLink {
+                MyDrinksView()
+            } label: {
+                settingsRow(
+                    title: "My Drinks",
+                    subtitle: "\(activeDrinks.count) active • \(favoriteDrinks.count) favorites",
+                    symbol: "mug.fill",
+                    tint: CXTheme.caffeineAccent
+                )
+            }
+        }
+    }
+
+    private func streakMetric(
+        value: Int,
+        title: String,
+        symbol: String,
+        tint: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: symbol)
+                .foregroundStyle(tint)
+            Text("\(value)")
+                .font(.title.bold())
+                .contentTransition(.numericText())
+            Text(value == 1 ? "\(title) day" : "\(title) days")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
     }
 
     private func settingsRow(
@@ -149,6 +235,36 @@ struct ProfileView: View {
         }
     }
 
+    private var profile: UserProfile? { profiles.first }
+
+    private var profileName: String {
+        guard let name = profile?.displayName, !name.isEmpty else {
+            return "Your CafeineX"
+        }
+        return name
+    }
+
+    private var activeDrinks: [Drink] {
+        drinks.filter {
+            !(DrinkLibrary.existingMetadata(
+                for: $0,
+                in: drinkMetadata
+            )?.isArchived ?? false)
+        }
+    }
+
+    private var favoriteDrinks: [Drink] {
+        activeDrinks.filter(\.isFavorite)
+    }
+
+    private var streakSummary: StreakSummary {
+        streakEngine.makeSummary(
+            checkInDates: checkIns.map(\.day),
+            caffeineDates: caffeineEntries.map(\.consumedAt),
+            sleepSchedule: sleepScheduleStore.schedule
+        )
+    }
+
     private var bedtimeText: String {
         sleepScheduleStore
             .bedtimeDate()
@@ -162,5 +278,14 @@ struct ProfileView: View {
         case .writeEnabled: "Connected"
         case .writeDisabled: "Write access off"
         }
+    }
+
+    private func ensureProfileExists() {
+        guard profiles.isEmpty,
+              (try? modelContext.fetchCount(FetchDescriptor<UserProfile>())) == 0 else {
+            return
+        }
+        modelContext.insert(UserProfile())
+        try? modelContext.save()
     }
 }
