@@ -21,7 +21,7 @@ struct QuickAddSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Drink.name) private var drinks: [Drink]
-    @Query private var drinkMetadata: [DrinkMetadata]
+    @Query private var drinkDetails: [DrinkDetails]
     @FocusState private var focusedField: Field?
 
     @State private var kind: QuickAddKind
@@ -293,25 +293,31 @@ struct QuickAddSheet: View {
     private var activeDrinks: [Drink] {
         drinks
             .filter {
-                !(DrinkLibrary.existingMetadata(
+                !(DrinkLibrary.existingDetails(
                     for: $0,
-                    in: drinkMetadata
+                    in: drinkDetails
                 )?.isArchived ?? false)
             }
             .sorted {
                 if $0.isFavorite != $1.isFavorite {
                     return $0.isFavorite && !$1.isFavorite
                 }
-                let lhsLastUsed = DrinkLibrary.existingMetadata(
+                let lhsDetails = DrinkLibrary.existingDetails(
                     for: $0,
-                    in: drinkMetadata
-                )?.lastUsedAt
-                let rhsLastUsed = DrinkLibrary.existingMetadata(
+                    in: drinkDetails
+                )
+                let rhsDetails = DrinkLibrary.existingDetails(
                     for: $1,
-                    in: drinkMetadata
-                )?.lastUsedAt
-                if lhsLastUsed != rhsLastUsed {
-                    return (lhsLastUsed ?? .distantPast) > (rhsLastUsed ?? .distantPast)
+                    in: drinkDetails
+                )
+                if $0.isFavorite,
+                   lhsDetails?.favoriteOrder != rhsDetails?.favoriteOrder {
+                    return (lhsDetails?.favoriteOrder ?? .max)
+                        < (rhsDetails?.favoriteOrder ?? .max)
+                }
+                if lhsDetails?.lastUsedAt != rhsDetails?.lastUsedAt {
+                    return (lhsDetails?.lastUsedAt ?? .distantPast)
+                        > (rhsDetails?.lastUsedAt ?? .distantPast)
                 }
                 return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }

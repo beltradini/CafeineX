@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-enum ProfileGoal: String, CaseIterable, Identifiable, Codable, Sendable {
+nonisolated enum ProfileGoal: String, CaseIterable, Identifiable, Codable, Sendable {
     case protectSleep
     case understandPatterns
     case reduceLateCaffeine
@@ -24,6 +24,28 @@ enum ProfileGoal: String, CaseIterable, Identifiable, Codable, Sendable {
         case .understandPatterns: "chart.xyaxis.line"
         case .reduceLateCaffeine: "clock.badge.checkmark"
         case .mindfulTracking: "brain.head.profile"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .protectSleep:
+            "Keep late caffeine visible and make room for restorative sleep."
+        case .understandPatterns:
+            "Build a consistent record before drawing conclusions from your habits."
+        case .reduceLateCaffeine:
+            "Notice and gradually reduce caffeine logged after your personal cutoff."
+        case .mindfulTracking:
+            "Review each day without rewarding caffeine use or chasing perfect numbers."
+        }
+    }
+
+    var metricTitle: String {
+        switch self {
+        case .protectSleep: "Protected reviewed days"
+        case .understandPatterns: "Days with a complete record"
+        case .reduceLateCaffeine: "Reviewed days without late caffeine"
+        case .mindfulTracking: "Days consciously reviewed"
         }
     }
 }

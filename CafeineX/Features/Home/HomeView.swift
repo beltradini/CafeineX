@@ -10,7 +10,7 @@ struct HomeView: View {
     @Query private var entries: [CaffeineEntry]
     @Query private var nicotineEntries: [NicotineEntry]
     @Query(sort: \Drink.name) private var drinks: [Drink]
-    @Query private var drinkMetadata: [DrinkMetadata]
+    @Query private var drinkDetails: [DrinkDetails]
     @Query private var profiles: [UserProfile]
     @Query private var checkIns: [AwarenessCheckIn]
 
@@ -183,21 +183,26 @@ struct HomeView: View {
         drinks
             .filter {
                 $0.isFavorite
-                    && !(DrinkLibrary.existingMetadata(
+                    && !(DrinkLibrary.existingDetails(
                         for: $0,
-                        in: drinkMetadata
+                        in: drinkDetails
                     )?.isArchived ?? false)
             }
             .sorted {
-                let lhs = DrinkLibrary.existingMetadata(
+                let lhsDetails = DrinkLibrary.existingDetails(
                     for: $0,
-                    in: drinkMetadata
-                )?.lastUsedAt ?? .distantPast
-                let rhs = DrinkLibrary.existingMetadata(
+                    in: drinkDetails
+                )
+                let rhsDetails = DrinkLibrary.existingDetails(
                     for: $1,
-                    in: drinkMetadata
-                )?.lastUsedAt ?? .distantPast
-                return lhs > rhs
+                    in: drinkDetails
+                )
+                if lhsDetails?.favoriteOrder != rhsDetails?.favoriteOrder {
+                    return (lhsDetails?.favoriteOrder ?? .max)
+                        < (rhsDetails?.favoriteOrder ?? .max)
+                }
+                return (lhsDetails?.lastUsedAt ?? .distantPast)
+                    > (rhsDetails?.lastUsedAt ?? .distantPast)
             }
     }
 
@@ -264,12 +269,8 @@ struct HomeView: View {
     }
 
     private func ensureProfileExists() {
-        guard profiles.isEmpty,
-              (try? modelContext.fetchCount(FetchDescriptor<UserProfile>())) == 0 else {
-            return
-        }
-        modelContext.insert(UserProfile())
-        try? modelContext.save()
+        guard profiles.isEmpty else { return }
+        _ = try? UserProfileStore.resolve(in: modelContext)
     }
 
     private func feedbackBanner(_ feedback: HomeViewModel.Feedback) -> some View {
@@ -319,6 +320,7 @@ struct HomeView: View {
                 UserProfile.self,
                 AwarenessCheckIn.self,
                 DrinkMetadata.self,
+                DrinkDetails.self,
                 HealthSyncOutboxItem.self,
             ],
             inMemory: true

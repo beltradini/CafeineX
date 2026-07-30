@@ -55,9 +55,15 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(profile.waitForExistence(timeout: 5))
         profile.tap()
 
-        XCTAssertTrue(app.staticTexts["Mindful Streaks"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Your Focus"].waitForExistence(timeout: 3))
 
         let myDrinks = app.staticTexts["My Drinks"].firstMatch
+        if !myDrinks.waitForExistence(timeout: 1) {
+            app.swipeUp()
+        }
+        if !myDrinks.waitForExistence(timeout: 1) {
+            app.swipeUp()
+        }
         XCTAssertTrue(myDrinks.waitForExistence(timeout: 3))
         myDrinks.tap()
 

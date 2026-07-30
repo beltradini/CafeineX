@@ -93,6 +93,7 @@ struct AppShellView: View {
                 UserProfile.self,
                 AwarenessCheckIn.self,
                 DrinkMetadata.self,
+                DrinkDetails.self,
                 HealthSyncOutboxItem.self,
             ],
             inMemory: true

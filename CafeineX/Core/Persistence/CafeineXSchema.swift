@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 
 enum CafeineXSchemaV1: VersionedSchema {
@@ -32,9 +33,32 @@ enum CafeineXSchemaV3: VersionedSchema {
     }
 }
 
+enum CafeineXSchemaV4: VersionedSchema {
+    static let versionIdentifier = Schema.Version(4, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        [
+            CaffeineEntry.self,
+            Drink.self,
+            NicotineEntry.self,
+            UserProfile.self,
+            AwarenessCheckIn.self,
+            DrinkMetadata.self,
+            DrinkDetails.self,
+            PhaseCSchemaState.self,
+            HealthSyncOutboxItem.self,
+        ]
+    }
+}
+
 enum CafeineXMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [CafeineXSchemaV1.self, CafeineXSchemaV2.self, CafeineXSchemaV3.self]
+        [
+            CafeineXSchemaV1.self,
+            CafeineXSchemaV2.self,
+            CafeineXSchemaV3.self,
+            CafeineXSchemaV4.self,
+        ]
     }
 
     static var stages: [MigrationStage] {
@@ -46,6 +70,10 @@ enum CafeineXMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: CafeineXSchemaV2.self,
                 toVersion: CafeineXSchemaV3.self
+            ),
+            .lightweight(
+                fromVersion: CafeineXSchemaV3.self,
+                toVersion: CafeineXSchemaV4.self
             ),
         ]
     }

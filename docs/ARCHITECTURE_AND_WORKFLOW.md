@@ -4,7 +4,7 @@
 
 CafeineX uses a feature-first shell with explicit boundaries:
 
-1. `CafeineXApp` is the composition root. It opens `CafeineXSchemaV3` through `CafeineXMigrationPlan`, injects app-wide preference stores, and launches `AppShellView`.
+1. `CafeineXApp` is the composition root. It opens `CafeineXSchemaV4` through `CafeineXMigrationPlan`, performs the idempotent Phase C details backfill, injects app-wide preference stores, and launches `AppShellView`.
 2. `AppShellView` owns the native adaptive tab shell: Home, History, Profile, and the system Search role. It also presents the single app-wide Quick Add flow.
 3. `HomeView` composes focused dashboard components and observes bounded 30-day caffeine and nicotine queries.
 4. `HistoryView` queries the complete retained local timeline and provides contextual search, substance/source/date filters, daily grouping, detail, editing, deletion, and separate aggregate totals.
@@ -19,9 +19,10 @@ CafeineX uses a feature-first shell with explicit boundaries:
 13. `NicotineEntry` persists product, amount, unit, timestamp, source, and an optional note without writing an unsupported nicotine type to HealthKit.
 14. `NicotineEngine` turns events into product-specific observation windows and bedtime guidance without claiming absorbed dose.
 15. `DailyExposureContext` combines caffeine and nicotine timing, counts same-day temporal overlaps, and keeps all quantities on separate axes.
-16. `Drink` is the single source for My Drinks, Home favorites, and Quick Add. Archiving hides a drink without rewriting historical exposure events.
-17. `UserProfile` keeps a stable local identity and sync revision. A future Sign in with Apple implementation can associate that identity while keeping credentials in Keychain.
-18. `AwarenessCheckIn` and `StreakEngine` maintain awareness and sleep-protection streaks without rewarding stimulant consumption or treating missing data as success.
+16. `Drink` remains the stable beverage identity used by My Drinks, Home favorites, and Quick Add. `DrinkDetails` owns editable brand, serving, personal notes, archive state, usage metadata, and favorite rank through a nullable relationship to `Drink`. Archiving hides a drink without rewriting historical exposure events.
+17. `UserProfile` keeps a stable local identity and sync revision. `UserProfileStore` guarantees a single persistent profile and centralizes edits to name, normalized photo, and personal goal. A future Sign in with Apple implementation can associate that identity while keeping credentials in Keychain.
+18. `AwarenessCheckIn` and `StreakEngine` maintain current and best awareness/sleep-protection streaks without rewarding stimulant consumption, erasing historical achievements, or treating missing data as success.
+19. `WeeklySummaryEngine` derives the current calendar week, previous-week comparison, tracked/reviewed days, late-caffeine events, and goal-specific progress from persisted events. The summary is computed rather than persisted, so it cannot become stale.
 
 The dashboard keeps the 30-day synchronization window in memory but renders only the 20 most recent rows. `HistoryView` reads every retained local entry; records are not deleted by the dashboard limit or the HealthKit synchronization window.
 
@@ -42,6 +43,14 @@ Apple Health sync:
 History and search:
 
 `SwiftData queries -> ExposureItem.combined -> ExposureSearchEngine -> History/Search presentation`
+
+Profile insight:
+
+`SwiftData profile and events -> WeeklySummaryEngine + StreakEngine -> goal-aware Profile presentation`
+
+Drink library:
+
+`Drink + DrinkDetails relationship -> My Drinks edits/reordering -> ordered Home and Quick Add favorites`
 
 The local save happens before the optional HealthKit write. A HealthKit failure therefore cannot erase a user's log.
 

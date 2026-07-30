@@ -62,7 +62,7 @@ struct SwiftDataMigrationTests {
             try context.save()
         }
 
-        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV3.self)
+        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV4.self)
         let versionedConfiguration = ModelConfiguration(
             schema: versionedSchema,
             url: storeURL,
@@ -74,6 +74,7 @@ struct SwiftDataMigrationTests {
             configurations: [versionedConfiguration]
         )
         let migratedContext = migratedContainer.mainContext
+        DrinkLibrary.backfillDetailsIfNeeded(context: migratedContext)
         let entries = try migratedContext.fetch(FetchDescriptor<CaffeineEntry>())
         let drinks = try migratedContext.fetch(FetchDescriptor<Drink>())
 
@@ -95,16 +96,29 @@ struct SwiftDataMigrationTests {
         #expect(drink.category == .coffee)
         #expect(drink.isFavorite)
         #expect(drink.createdAt == createdAt)
+
+        let details = try #require(
+            migratedContext.fetch(FetchDescriptor<DrinkDetails>()).first
+        )
+        #expect(details.drinkID == drinkID)
+        #expect(details.drink?.id == drinkID)
+        #expect(details.favoriteOrder == 0)
+        #expect(
+            try migratedContext.fetchCount(
+                FetchDescriptor<PhaseCSchemaState>()
+            ) == 1
+        )
     }
 
     @Test func migrationPlanDeclaresCurrentSchemaAsItsBaseline() {
-        #expect(CafeineXMigrationPlan.schemas.count == 3)
+        #expect(CafeineXMigrationPlan.schemas.count == 4)
         #expect(CafeineXMigrationPlan.schemas.first == CafeineXSchemaV1.self)
-        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV3.self)
-        #expect(CafeineXMigrationPlan.stages.count == 2)
+        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV4.self)
+        #expect(CafeineXMigrationPlan.stages.count == 3)
         #expect(CafeineXSchemaV1.versionIdentifier == Schema.Version(1, 0, 0))
         #expect(CafeineXSchemaV2.versionIdentifier == Schema.Version(2, 0, 0))
         #expect(CafeineXSchemaV3.versionIdentifier == Schema.Version(3, 0, 0))
+        #expect(CafeineXSchemaV4.versionIdentifier == Schema.Version(4, 0, 0))
     }
 
     @Test func v1StoreMigratesToV2AndAcceptsNicotineEntries() throws {
@@ -246,5 +260,111 @@ struct SwiftDataMigrationTests {
 
         #expect(try context.fetchCount(FetchDescriptor<UserProfile>()) == 1)
         #expect(try context.fetchCount(FetchDescriptor<AwarenessCheckIn>()) == 1)
+    }
+
+    @Test func v3StoreMigratesMetadataIntoRelatedDrinkDetails() throws {
+        let storeDirectory = FileManager.default.temporaryDirectory
+            .appending(
+                path: "CafeineXV4MigrationTests-\(UUID().uuidString)",
+                directoryHint: .isDirectory
+            )
+        let storeURL = storeDirectory.appending(path: "CafeineX.store")
+        try FileManager.default.createDirectory(
+            at: storeDirectory,
+            withIntermediateDirectories: true
+        )
+        defer {
+            try? FileManager.default.removeItem(at: storeDirectory)
+        }
+
+        let favoriteID = UUID()
+        let archivedID = UUID()
+        let archivedAt = Date(timeIntervalSince1970: 1_753_722_000)
+
+        do {
+            let schema = Schema(versionedSchema: CafeineXSchemaV3.self)
+            let configuration = ModelConfiguration(
+                schema: schema,
+                url: storeURL,
+                cloudKitDatabase: .none
+            )
+            let container = try ModelContainer(
+                for: schema,
+                migrationPlan: CafeineXMigrationPlan.self,
+                configurations: [configuration]
+            )
+            let context = container.mainContext
+            let favorite = Drink(
+                id: favoriteID,
+                name: "Favorite V3",
+                caffeineMG: 90,
+                category: .coffee,
+                isFavorite: true
+            )
+            let archived = Drink(
+                id: archivedID,
+                name: "Archived V3",
+                caffeineMG: 35,
+                category: .tea,
+                isFavorite: false
+            )
+            context.insert(favorite)
+            context.insert(archived)
+            context.insert(
+                DrinkMetadata(
+                    drinkID: favoriteID,
+                    useCount: 4,
+                    lastUsedAt: archivedAt.addingTimeInterval(-3_600),
+                    updatedAt: archivedAt
+                )
+            )
+            context.insert(
+                DrinkMetadata(
+                    drinkID: archivedID,
+                    isArchived: true,
+                    useCount: 2,
+                    updatedAt: archivedAt
+                )
+            )
+            try context.save()
+        }
+
+        let schema = Schema(versionedSchema: CafeineXSchemaV4.self)
+        let configuration = ModelConfiguration(
+            schema: schema,
+            url: storeURL,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: CafeineXMigrationPlan.self,
+            configurations: [configuration]
+        )
+        DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
+        let details = try container.mainContext.fetch(
+            FetchDescriptor<DrinkDetails>()
+        )
+        let favoriteDetails = try #require(
+            details.first { $0.drinkID == favoriteID }
+        )
+        let archivedDetails = try #require(
+            details.first { $0.drinkID == archivedID }
+        )
+
+        #expect(details.count == 2)
+        #expect(favoriteDetails.drink?.id == favoriteID)
+        #expect(favoriteDetails.favoriteOrder == 0)
+        #expect(favoriteDetails.useCount == 4)
+        #expect(!favoriteDetails.isArchived)
+        #expect(archivedDetails.drink?.id == archivedID)
+        #expect(archivedDetails.favoriteOrder == nil)
+        #expect(archivedDetails.isArchived)
+        #expect(archivedDetails.archivedAt == archivedAt)
+        #expect(archivedDetails.useCount == 2)
+        #expect(
+            try container.mainContext.fetchCount(
+                FetchDescriptor<PhaseCSchemaState>()
+            ) == 1
+        )
     }
 }

@@ -4,7 +4,7 @@ import SwiftUI
 struct MyDrinksView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Drink.name) private var drinks: [Drink]
-    @Query private var metadataValues: [DrinkMetadata]
+    @Query private var detailsValues: [DrinkDetails]
 
     @State private var searchText = ""
     @State private var editingDrink: Drink?
@@ -29,56 +29,26 @@ struct MyDrinksView: View {
                     )
                 }
                 .listRowBackground(Color.clear)
+            } else if !showingArchived && searchText.isEmpty {
+                if !favoriteDrinks.isEmpty {
+                    Section("Favorites") {
+                        ForEach(favoriteDrinks) { drink in
+                            managedRow(drink)
+                        }
+                        .onMove(perform: moveFavorites)
+                    }
+                }
+
+                if !otherActiveDrinks.isEmpty {
+                    Section("Other Drinks") {
+                        ForEach(otherActiveDrinks) { drink in
+                            managedRow(drink)
+                        }
+                    }
+                }
             } else {
                 ForEach(visibleDrinks) { drink in
-                    drinkRow(drink)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            if !isArchived(drink) {
-                                Button {
-                                    drink.isFavorite.toggle()
-                                    metadata(for: drink).updatedAt = .now
-                                    try? modelContext.save()
-                                    feedbackTrigger += 1
-                                } label: {
-                                    Label(
-                                        drink.isFavorite ? "Unfavorite" : "Favorite",
-                                        systemImage: drink.isFavorite ? "star.slash" : "star.fill"
-                                    )
-                                }
-                                .tint(CXTheme.caffeineAccent)
-                            }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if isArchived(drink) {
-                                Button {
-                                    DrinkLibrary.restore(
-                                        drink,
-                                        metadataValues: metadataValues,
-                                        context: modelContext
-                                    )
-                                    feedbackTrigger += 1
-                                } label: {
-                                    Label("Restore", systemImage: "arrow.uturn.backward")
-                                }
-                                .tint(CXTheme.healthAccent)
-
-                                Button("Delete", systemImage: "trash", role: .destructive) {
-                                    permanentlyDeleting = drink
-                                }
-                            } else {
-                                Button {
-                                    DrinkLibrary.archive(
-                                        drink,
-                                        metadataValues: metadataValues,
-                                        context: modelContext
-                                    )
-                                    feedbackTrigger += 1
-                                } label: {
-                                    Label("Archive", systemImage: "archivebox")
-                                }
-                                .tint(.gray)
-                            }
-                        }
+                    managedRow(drink)
                 }
             }
         }
@@ -96,7 +66,11 @@ struct MyDrinksView: View {
                     )
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if !showingArchived, searchText.isEmpty, !favoriteDrinks.isEmpty {
+                    EditButton()
+                }
+
                 Button {
                     isCreatingDrink = true
                 } label: {
@@ -110,6 +84,10 @@ struct MyDrinksView: View {
         .sheet(item: $editingDrink) { drink in
             DrinkEditorView(
                 drink: drink,
+                details: DrinkLibrary.existingDetails(
+                    for: drink,
+                    in: detailsValues
+                ),
                 isArchived: isArchived(drink)
             )
         }
@@ -123,11 +101,11 @@ struct MyDrinksView: View {
         ) {
             Button("Delete Permanently", role: .destructive) {
                 if let drink = permanentlyDeleting {
-                    if let metadata = DrinkLibrary.existingMetadata(
+                    if let details = DrinkLibrary.existingDetails(
                         for: drink,
-                        in: metadataValues
+                        in: detailsValues
                     ) {
-                        modelContext.delete(metadata)
+                        modelContext.delete(details)
                     }
                     modelContext.delete(drink)
                     try? modelContext.save()
@@ -144,6 +122,60 @@ struct MyDrinksView: View {
         .task {
             DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
         }
+    }
+
+    private func managedRow(_ drink: Drink) -> some View {
+        drinkRow(drink)
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                if !isArchived(drink) {
+                    Button {
+                        DrinkLibrary.setFavorite(
+                            !drink.isFavorite,
+                            for: drink,
+                            detailsValues: detailsValues,
+                            context: modelContext
+                        )
+                        feedbackTrigger += 1
+                    } label: {
+                        Label(
+                            drink.isFavorite ? "Unfavorite" : "Favorite",
+                            systemImage: drink.isFavorite ? "star.slash" : "star.fill"
+                        )
+                    }
+                    .tint(CXTheme.caffeineAccent)
+                }
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                if isArchived(drink) {
+                    Button {
+                        DrinkLibrary.restore(
+                            drink,
+                            detailsValues: detailsValues,
+                            context: modelContext
+                        )
+                        feedbackTrigger += 1
+                    } label: {
+                        Label("Restore", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(CXTheme.healthAccent)
+
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        permanentlyDeleting = drink
+                    }
+                } else {
+                    Button {
+                        DrinkLibrary.archive(
+                            drink,
+                            detailsValues: detailsValues,
+                            context: modelContext
+                        )
+                        feedbackTrigger += 1
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    .tint(.gray)
+                }
+            }
     }
 
     private func drinkRow(_ drink: Drink) -> some View {
@@ -172,7 +204,7 @@ struct MyDrinksView: View {
                         }
                     }
 
-                    Text("\(Int(drink.caffeineMG.rounded())) mg • \(drink.category.title)")
+                    Text(drinkDescription(drink))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -206,25 +238,72 @@ struct MyDrinksView: View {
                 if $0.isFavorite != $1.isFavorite {
                     return $0.isFavorite && !$1.isFavorite
                 }
+                let lhsOrder = details(for: $0)?.favoriteOrder
+                let rhsOrder = details(for: $1)?.favoriteOrder
+                if $0.isFavorite, lhsOrder != rhsOrder {
+                    return (lhsOrder ?? .max) < (rhsOrder ?? .max)
+                }
+                if showingArchived {
+                    let lhsArchivedAt = details(for: $0)?.archivedAt
+                    let rhsArchivedAt = details(for: $1)?.archivedAt
+                    if lhsArchivedAt != rhsArchivedAt {
+                        return (lhsArchivedAt ?? .distantPast)
+                            > (rhsArchivedAt ?? .distantPast)
+                    }
+                }
                 return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
     }
 
-    private func metadata(for drink: Drink) -> DrinkMetadata {
-        DrinkLibrary.metadata(
-            for: drink,
-            in: metadataValues,
-            context: modelContext
-        )
+    private var favoriteDrinks: [Drink] {
+        visibleDrinks.filter(\.isFavorite)
+    }
+
+    private var otherActiveDrinks: [Drink] {
+        visibleDrinks.filter { !$0.isFavorite }
+    }
+
+    private func details(for drink: Drink) -> DrinkDetails? {
+        DrinkLibrary.existingDetails(for: drink, in: detailsValues)
     }
 
     private func isArchived(_ drink: Drink) -> Bool {
-        DrinkLibrary.existingMetadata(for: drink, in: metadataValues)?.isArchived
-            ?? false
+        details(for: drink)?.isArchived ?? false
     }
 
     private func useCount(for drink: Drink) -> Int {
-        DrinkLibrary.existingMetadata(for: drink, in: metadataValues)?.useCount
-            ?? 0
+        details(for: drink)?.useCount ?? 0
+    }
+
+    private func drinkDescription(_ drink: Drink) -> String {
+        let details = details(for: drink)
+        return [
+            "\(Int(drink.caffeineMG.rounded())) mg",
+            details?.brand.nilIfEmpty,
+            details?.servingDescription,
+            drink.category.title,
+        ]
+        .compactMap { $0 }
+        .joined(separator: " • ")
+    }
+
+    private func moveFavorites(
+        from source: IndexSet,
+        to destination: Int
+    ) {
+        var reordered = favoriteDrinks
+        reordered.move(fromOffsets: source, toOffset: destination)
+        DrinkLibrary.reorderFavorites(
+            reordered,
+            detailsValues: detailsValues,
+            context: modelContext
+        )
+        feedbackTrigger += 1
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

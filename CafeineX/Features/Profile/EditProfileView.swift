@@ -95,12 +95,18 @@ struct EditProfileView: View {
     }
 
     private func save() {
-        profile.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        profile.avatarData = avatarData
-        profile.goalRawValue = goal.rawValue
-        profile.markChanged()
-        try? modelContext.save()
-        dismiss()
+        do {
+            try UserProfileStore.save(
+                profile,
+                displayName: displayName,
+                avatarData: avatarData,
+                goal: goal,
+                in: modelContext
+            )
+            dismiss()
+        } catch {
+            assertionFailure("Unable to save profile: \(error)")
+        }
     }
 
     private func normalizedAvatarData(_ data: Data) -> Data? {

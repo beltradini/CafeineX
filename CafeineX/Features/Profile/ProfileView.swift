@@ -12,7 +12,7 @@ struct ProfileView: View {
     @Query private var nicotineEntries: [NicotineEntry]
     @Query private var checkIns: [AwarenessCheckIn]
     @Query private var drinks: [Drink]
-    @Query private var drinkMetadata: [DrinkMetadata]
+    @Query private var drinkDetails: [DrinkDetails]
 
     @Bindable var viewModel: HomeViewModel
     @State private var editingProfile: UserProfile?
@@ -25,7 +25,9 @@ struct ProfileView: View {
 
             List {
                 profileHeader
-                streakSection
+                goalSection
+                weeklySection
+                responsibleStreaksSection
                 librarySection
 
                 Section("Personalization") {
@@ -91,7 +93,7 @@ struct ProfileView: View {
 
                 Section("About") {
                     LabeledContent("App", value: "CafeineX")
-                    LabeledContent("Data model", value: "SwiftData V3")
+                    LabeledContent("Data model", value: "SwiftData V4")
                     LabeledContent("Purpose", value: "Mindful exposure guidance")
                 }
             }
@@ -127,24 +129,28 @@ struct ProfileView: View {
                     editingProfile = profile
                 }
             } label: {
-                VStack(spacing: 14) {
-                    ProfileAvatarView(data: profile?.avatarData)
+                HStack(spacing: 16) {
+                    ProfileAvatarView(data: profile?.avatarData, size: 82)
 
-                    VStack(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 5) {
                         Text(profileName)
                             .font(.title2.bold())
                             .foregroundStyle(.primary)
 
-                        Label(
-                            profile?.goal.title ?? ProfileGoal.protectSleep.title,
-                            systemImage: profile?.goal.symbol ?? ProfileGoal.protectSleep.symbol
-                        )
+                        Text(profile?.displayName.isEmpty == false
+                            ? "Your personal CafeineX profile"
+                            : "Add your name and photo")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                        Label("Edit Profile", systemImage: "pencil")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(CXTheme.healthAccent)
                     }
+
+                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
             .listRowBackground(Color.clear)
@@ -153,27 +159,43 @@ struct ProfileView: View {
         }
     }
 
-    private var streakSection: some View {
-        Section("Mindful Streaks") {
-            HStack(spacing: 12) {
-                streakMetric(
-                    value: streakSummary.awarenessDays,
-                    title: "Awareness",
-                    symbol: "brain.head.profile",
-                    tint: CXTheme.healthAccent
-                )
-
-                streakMetric(
-                    value: streakSummary.sleepProtectionDays,
-                    title: "Sleep protection",
-                    symbol: "moon.stars.fill",
-                    tint: CXTheme.nicotineAccent
+    private var goalSection: some View {
+        Section("Your Focus") {
+            Button {
+                if let profile {
+                    editingProfile = profile
+                }
+            } label: {
+                settingsRow(
+                    title: selectedGoal.title,
+                    subtitle: selectedGoal.description,
+                    symbol: selectedGoal.symbol,
+                    tint: CXTheme.caffeineAccent
                 )
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Change your personal goal")
+        }
+    }
 
-            Text("Awareness counts reviewed days. Sleep protection counts completed, reviewed days without caffeine after your cutoff. Missing data never counts as success.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private var weeklySection: some View {
+        Section {
+            WeeklySummaryCard(
+                summary: weeklySummary,
+                goal: selectedGoal
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    private var responsibleStreaksSection: some View {
+        Section {
+            ResponsibleStreaksCard(summary: streakSummary)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
     }
 
@@ -190,29 +212,6 @@ struct ProfileView: View {
                 )
             }
         }
-    }
-
-    private func streakMetric(
-        value: Int,
-        title: String,
-        symbol: String,
-        tint: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: symbol)
-                .foregroundStyle(tint)
-            Text("\(value)")
-                .font(.title.bold())
-                .contentTransition(.numericText())
-            Text(value == 1 ? "\(title) day" : "\(title) days")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-        .accessibilityElement(children: .combine)
     }
 
     private func settingsRow(
@@ -239,16 +238,20 @@ struct ProfileView: View {
 
     private var profileName: String {
         guard let name = profile?.displayName, !name.isEmpty else {
-            return "Your CafeineX"
+            return "Set Up Your Profile"
         }
         return name
     }
 
+    private var selectedGoal: ProfileGoal {
+        profile?.goal ?? .protectSleep
+    }
+
     private var activeDrinks: [Drink] {
         drinks.filter {
-            !(DrinkLibrary.existingMetadata(
+            !(DrinkLibrary.existingDetails(
                 for: $0,
-                in: drinkMetadata
+                in: drinkDetails
             )?.isArchived ?? false)
         }
     }
@@ -261,6 +264,15 @@ struct ProfileView: View {
         streakEngine.makeSummary(
             checkInDates: checkIns.map(\.day),
             caffeineDates: caffeineEntries.map(\.consumedAt),
+            sleepSchedule: sleepScheduleStore.schedule
+        )
+    }
+
+    private var weeklySummary: WeeklySummary {
+        WeeklySummaryEngine().makeSummary(
+            caffeineDoses: caffeineEntries.map(\.dose),
+            nicotineEvents: nicotineEntries.map(\.event),
+            checkInDates: checkIns.map(\.day),
             sleepSchedule: sleepScheduleStore.schedule
         )
     }
@@ -281,11 +293,7 @@ struct ProfileView: View {
     }
 
     private func ensureProfileExists() {
-        guard profiles.isEmpty,
-              (try? modelContext.fetchCount(FetchDescriptor<UserProfile>())) == 0 else {
-            return
-        }
-        modelContext.insert(UserProfile())
-        try? modelContext.save()
+        guard profiles.isEmpty else { return }
+        _ = try? UserProfileStore.resolve(in: modelContext)
     }
 }

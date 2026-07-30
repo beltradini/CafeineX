@@ -7,7 +7,7 @@ import SwiftData
 @Observable
 final class HomeViewModel {
     private struct DrinkUsageSnapshot {
-        let metadata: DrinkMetadata
+        let details: DrinkDetails
         let useCount: Int
         let lastUsedAt: Date?
     }
@@ -184,20 +184,20 @@ final class HomeViewModel {
         pendingOutboxItems[entry.id] = outboxItem
         entries.sort { $0.consumedAt > $1.consumedAt }
         if let drink {
-            let metadata = DrinkLibrary.metadata(
+            let details = DrinkLibrary.details(
                 for: drink,
                 in: [],
                 context: context
             )
             pendingDrinkUsage[entry.id] = DrinkUsageSnapshot(
-                metadata: metadata,
-                useCount: metadata.useCount,
-                lastUsedAt: metadata.lastUsedAt
+                details: details,
+                useCount: details.useCount,
+                lastUsedAt: details.lastUsedAt
             )
             DrinkLibrary.recordUse(
                 of: drink,
                 at: entry.consumedAt,
-                metadataValues: [metadata],
+                detailsValues: [details],
                 context: context
             )
         }
@@ -229,9 +229,9 @@ final class HomeViewModel {
             context.delete(outboxItem)
         }
         if let usage = pendingDrinkUsage.removeValue(forKey: entry.id) {
-            usage.metadata.useCount = usage.useCount
-            usage.metadata.lastUsedAt = usage.lastUsedAt
-            usage.metadata.updatedAt = .now
+            usage.details.useCount = usage.useCount
+            usage.details.lastUsedAt = usage.lastUsedAt
+            usage.details.updatedAt = .now
         }
         context.delete(entry)
 

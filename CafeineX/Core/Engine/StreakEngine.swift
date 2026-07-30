@@ -3,6 +3,10 @@ import Foundation
 nonisolated struct StreakSummary: Equatable, Sendable {
     let awarenessDays: Int
     let sleepProtectionDays: Int
+    let bestAwarenessDays: Int
+    let bestSleepProtectionDays: Int
+    let reviewedDaysThisWeek: Int
+    let protectedDaysThisWeek: Int
     let isTodayReviewed: Bool
     let isTodaySleepProtectedSoFar: Bool
 }
@@ -15,8 +19,12 @@ nonisolated struct StreakEngine: Sendable {
         currentDate: Date = .now,
         calendar: Calendar = .current
     ) -> StreakSummary {
-        let checkedDays = Set(checkInDates.map { calendar.startOfDay(for: $0) })
         let today = calendar.startOfDay(for: currentDate)
+        let checkedDays = Set(
+            checkInDates
+                .map { calendar.startOfDay(for: $0) }
+                .filter { $0 <= today }
+        )
         let isTodayReviewed = checkedDays.contains(today)
 
         let awarenessDays = consecutiveCount(
@@ -43,10 +51,27 @@ nonisolated struct StreakEngine: Sendable {
             allowPendingToday: false,
             calendar: calendar
         )
+        let week = calendar.dateInterval(of: .weekOfYear, for: currentDate)
+        let reviewedDaysThisWeek = checkedDays.count {
+            week?.contains($0) ?? false
+        }
+        let protectedDaysThisWeek = protectedDays.count {
+            week?.contains($0) ?? false
+        }
 
         return StreakSummary(
             awarenessDays: awarenessDays,
             sleepProtectionDays: sleepProtectionDays,
+            bestAwarenessDays: longestConsecutiveCount(
+                qualifyingDays: checkedDays,
+                calendar: calendar
+            ),
+            bestSleepProtectionDays: longestConsecutiveCount(
+                qualifyingDays: protectedDays,
+                calendar: calendar
+            ),
+            reviewedDaysThisWeek: reviewedDaysThisWeek,
+            protectedDaysThisWeek: protectedDaysThisWeek,
             isTodayReviewed: isTodayReviewed,
             isTodaySleepProtectedSoFar: isTodayReviewed
                 && !hasLateCaffeine(
@@ -78,6 +103,29 @@ nonisolated struct StreakEngine: Sendable {
             cursor = previous
         }
         return count
+    }
+
+    private func longestConsecutiveCount(
+        qualifyingDays: Set<Date>,
+        calendar: Calendar
+    ) -> Int {
+        guard !qualifyingDays.isEmpty else { return 0 }
+
+        var best = 0
+        var current = 0
+        var previous: Date?
+
+        for day in qualifyingDays.sorted() {
+            if let previous,
+               calendar.date(byAdding: .day, value: 1, to: previous) == day {
+                current += 1
+            } else {
+                current = 1
+            }
+            best = max(best, current)
+            previous = day
+        }
+        return best
     }
 
     private func hasLateCaffeine(

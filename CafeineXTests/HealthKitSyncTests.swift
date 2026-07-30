@@ -10,7 +10,7 @@ struct HealthKitSyncTests {
         let schema = Schema([
             CaffeineEntry.self,
             Drink.self,
-            DrinkMetadata.self,
+            DrinkDetails.self,
             HealthSyncOutboxItem.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -55,7 +55,7 @@ struct HealthKitSyncTests {
         let schema = Schema([
             CaffeineEntry.self,
             Drink.self,
-            DrinkMetadata.self,
+            DrinkDetails.self,
             HealthSyncOutboxItem.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -90,7 +90,7 @@ struct HealthKitSyncTests {
         let schema = Schema([
             CaffeineEntry.self,
             Drink.self,
-            DrinkMetadata.self,
+            DrinkDetails.self,
             HealthSyncOutboxItem.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -120,12 +120,13 @@ struct HealthKitSyncTests {
                 context: context
             )
         )
-        let metadata = try #require(
-            context.fetch(FetchDescriptor<DrinkMetadata>()).first
+        let details = try #require(
+            context.fetch(FetchDescriptor<DrinkDetails>()).first
         )
-        #expect(metadata.useCount == 1)
+        #expect(details.useCount == 1)
+        #expect(details.drink?.id == drink.id)
         #expect(viewModel.undoLastCaffeineAdd(context: context))
-        #expect(metadata.useCount == 0)
+        #expect(details.useCount == 0)
         #expect(try context.fetchCount(FetchDescriptor<CaffeineEntry>()) == 0)
         #expect(
             try context.fetchCount(FetchDescriptor<HealthSyncOutboxItem>()) == 0
