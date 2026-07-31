@@ -52,6 +52,23 @@ struct HomeView: View {
                         DailyExposureCard(context: context)
                     }
 
+                    HealthInsightsCard(
+                        state: viewModel.sleepDataState,
+                        summary: viewModel.healthInsightsSummary,
+                        message: viewModel.sleepDataMessage,
+                        isLoading: viewModel.isLoadingSleep,
+                        connect: {
+                            Task {
+                                await viewModel.requestSleepAccess()
+                            }
+                        },
+                        refresh: {
+                            Task {
+                                await viewModel.refreshSleepSnapshot()
+                            }
+                        }
+                    )
+
                     HomeStreakCard(
                         summary: streakSummary,
                         reviewToday: reviewToday
@@ -132,6 +149,7 @@ struct HomeView: View {
             updateGuidancePreferences()
             viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
             viewModel.refreshHealthAccessState()
+            await viewModel.refreshSleepContext()
 
             if viewModel.healthAccessState != .notRequested {
                 await viewModel.synchronizeHealthKit(context: modelContext)

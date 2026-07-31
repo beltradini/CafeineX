@@ -25,6 +25,15 @@ final class HomeViewModel {
         case writeDisabled
     }
 
+    enum SleepDataState: Equatable {
+        case unavailable
+        case notRequested
+        case loading
+        case noData
+        case available
+        case failed
+    }
+
     private var engine: CaffeineEngine
     private var sleepSchedule: SleepSchedule = .default
     private let healthKitService: any HealthKitProviding
@@ -41,6 +50,11 @@ final class HomeViewModel {
     var healthMessage: String?
     var isSyncingHealth = false
     var lastHealthSyncDate: Date?
+    var sleepDataState: SleepDataState = .notRequested
+    var sleepSnapshot: SleepSnapshot?
+    var healthInsightsSummary: HealthInsightsSummary?
+    var sleepDataMessage: String?
+    var isLoadingSleep = false
     var feedback: Feedback?
 
     init() {
@@ -98,13 +112,63 @@ final class HomeViewModel {
 
     func requestHealthAccess(context: ModelContext) async {
         do {
-            try await healthKitService.requestAuthorization()
+            try await healthKitService.requestCaffeineAuthorization()
             refreshHealthAccessState()
             await synchronizeHealthKit(context: context)
         } catch {
             refreshHealthAccessState()
             healthMessage = error.localizedDescription
         }
+    }
+
+    func refreshSleepContext() async {
+        guard healthKitService.isHealthKitAvailable else {
+            sleepDataState = .unavailable
+            sleepSnapshot = nil
+            healthInsightsSummary = nil
+            return
+        }
+
+        do {
+            let requestStatus = try await healthKitService
+                .sleepAuthorizationRequestStatus()
+            switch requestStatus {
+            case .shouldRequest:
+                sleepDataState = .notRequested
+                sleepSnapshot = nil
+                healthInsightsSummary = nil
+            case .unnecessary, .unknown:
+                await refreshSleepSnapshot()
+            @unknown default:
+                sleepDataState = .notRequested
+            }
+        } catch {
+            sleepDataState = .failed
+            sleepDataMessage = "CafeineX could not check sleep access."
+        }
+    }
+
+    func requestSleepAccess() async {
+        guard !isLoadingSleep else { return }
+        isLoadingSleep = true
+        sleepDataState = .loading
+        defer { isLoadingSleep = false }
+
+        do {
+            try await healthKitService.requestSleepAuthorization()
+            await loadSleepSnapshot()
+        } catch {
+            sleepDataState = .failed
+            sleepDataMessage = "CafeineX could not request sleep access."
+        }
+    }
+
+    func refreshSleepSnapshot() async {
+        guard !isLoadingSleep else { return }
+        isLoadingSleep = true
+        sleepDataState = .loading
+        defer { isLoadingSleep = false }
+        await loadSleepSnapshot()
     }
 
     func synchronizeHealthKit(context: ModelContext) async {
@@ -363,6 +427,47 @@ final class HomeViewModel {
         )
         nicotineStatus = context.nicotineStatus
         dailyExposureContext = context
+        recalculateHealthInsights()
+    }
+
+    private func loadSleepSnapshot() async {
+        do {
+            let endDate = Date.now
+            let startDate = Calendar.current.date(
+                byAdding: .day,
+                value: -14,
+                to: endDate
+            ) ?? endDate.addingTimeInterval(-14 * 24 * 60 * 60)
+            let samples = try await healthKitService.fetchSleepSamples(
+                from: startDate,
+                to: endDate
+            )
+            sleepSnapshot = SleepSnapshotBuilder.makeLatest(
+                from: samples,
+                relativeTo: endDate
+            )
+            sleepDataMessage = nil
+            sleepDataState = sleepSnapshot == nil ? .noData : .available
+            recalculateHealthInsights()
+        } catch {
+            sleepSnapshot = nil
+            healthInsightsSummary = nil
+            sleepDataState = .failed
+            sleepDataMessage = "Recent sleep data could not be read. Check access in the Health app and try again."
+        }
+    }
+
+    private func recalculateHealthInsights() {
+        guard let sleepSnapshot else {
+            healthInsightsSummary = nil
+            return
+        }
+        healthInsightsSummary = HealthInsightsEngine().makeSummary(
+            snapshot: sleepSnapshot,
+            caffeineDoses: entries.map(\.dose),
+            nicotineEvents: nicotineEntries.map(\.event),
+            cutoffHoursBeforeSleep: sleepSchedule.cutoffHoursBeforeBedtime
+        )
     }
 
     private func outboxItem(

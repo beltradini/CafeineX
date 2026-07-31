@@ -4,7 +4,7 @@
 
 CafeineX uses a feature-first shell with explicit boundaries:
 
-1. `CafeineXApp` is the composition root. It opens `CafeineXSchemaV4` through `CafeineXMigrationPlan`, performs the idempotent Phase C details backfill, injects app-wide preference stores, and launches `AppShellView`.
+1. `CafeineXApp` is the composition root. `CafeineXStoreFactory` first opens `CafeineXSchemaV4` through `CafeineXMigrationPlan`; a narrowly validated historical-V3 recovery path preserves otherwise unrecognized development stores with backup and rollback. The app then performs the idempotent Phase C details backfill, injects app-wide preference stores, and launches `AppShellView`.
 2. `AppShellView` owns the native adaptive tab shell: Home, History, Profile, and the system Search role. It also presents the single app-wide Quick Add flow.
 3. `HomeView` composes focused dashboard components and observes bounded 30-day caffeine and nicotine queries.
 4. `HistoryView` queries the complete retained local timeline and provides contextual search, substance/source/date filters, daily grouping, detail, editing, deletion, and separate aggregate totals.
@@ -23,6 +23,8 @@ CafeineX uses a feature-first shell with explicit boundaries:
 17. `UserProfile` keeps a stable local identity and sync revision. `UserProfileStore` guarantees a single persistent profile and centralizes edits to name, normalized photo, and personal goal. A future Sign in with Apple implementation can associate that identity while keeping credentials in Keychain.
 18. `AwarenessCheckIn` and `StreakEngine` maintain current and best awareness/sleep-protection streaks without rewarding stimulant consumption, erasing historical achievements, or treating missing data as success.
 19. `WeeklySummaryEngine` derives the current calendar week, previous-week comparison, tracked/reviewed days, late-caffeine events, and goal-specific progress from persisted events. The summary is computed rather than persisted, so it cannot become stale.
+20. `HealthKitService` requests dietary caffeine and sleep analysis independently. Sleep access is read-only, optional, and never bundled into the caffeine authorization action.
+21. `SleepSnapshotBuilder` unions overlapping sleep intervals into the latest completed session without persisting raw samples. `HealthInsightsEngine` places local stimulant timing beside that snapshot using explicitly non-causal language and incomplete-data states.
 
 The dashboard keeps the 30-day synchronization window in memory but renders only the 20 most recent rows. `HistoryView` reads every retained local entry; records are not deleted by the dashboard limit or the HealthKit synchronization window.
 
@@ -47,6 +49,10 @@ History and search:
 Profile insight:
 
 `SwiftData profile and events -> WeeklySummaryEngine + StreakEngine -> goal-aware Profile presentation`
+
+Health insight:
+
+`HealthKit sleep samples -> in-memory SleepSnapshot -> HealthInsightsEngine + separate local event windows -> Home context`
 
 Drink library:
 
@@ -96,6 +102,7 @@ This is a user-level shell setting, not a repository file, so it is intentionall
 Before adding watchOS, widgets, App Intents, or stimulant-interaction features:
 
 1. Extend `CafeineXMigrationPlan` and its disk-backed migration tests before every SwiftData schema change. The V1 compatibility test reproduces the original unversioned store so adopting the plan cannot discard existing data.
-2. Keep imported and Health-linked caffeine records read-only until coordinated HealthKit deletion and editing are implemented explicitly.
-3. Keep any future exposures in separate models and engines; never merge their quantities into caffeine or nicotine totals.
-4. Add background HealthKit delivery only after foreground synchronization has device-level reliability evidence.
+2. Keep historical model definitions immutable. If a released checksum cannot be represented by staged migration, add a fixture-backed, version-specific recovery path; never delete an unknown store as a startup fallback. See `PERSISTENT_STORE_RECOVERY.md`.
+3. Keep imported and Health-linked caffeine records read-only until coordinated HealthKit deletion and editing are implemented explicitly.
+4. Keep any future exposures in separate models and engines; never merge their quantities into caffeine or nicotine totals.
+5. Add background HealthKit delivery only after foreground synchronization has device-level reliability evidence.

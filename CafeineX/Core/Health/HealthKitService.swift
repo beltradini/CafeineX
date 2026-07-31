@@ -14,7 +14,9 @@ protocol HealthKitProviding: AnyObject {
     var isHealthKitAvailable: Bool { get }
     var caffeineWriteAuthorizationStatus: HKAuthorizationStatus { get }
 
-    func requestAuthorization() async throws
+    func requestCaffeineAuthorization() async throws
+    func requestSleepAuthorization() async throws
+    func sleepAuthorizationRequestStatus() async throws -> HKAuthorizationRequestStatus
     func saveCaffeine(
         milligrams: Double,
         date: Date,
@@ -22,6 +24,7 @@ protocol HealthKitProviding: AnyObject {
         displayName: String
     ) async throws -> HealthCaffeineSample
     func fetchCaffeineSamples(from startDate: Date, to endDate: Date) async throws -> [HealthCaffeineSample]
+    func fetchSleepSamples(from startDate: Date, to endDate: Date) async throws -> [HealthSleepSample]
 }
 
 @MainActor
@@ -33,6 +36,7 @@ final class HealthKitService: HealthKitProviding {
 
     private let healthStore = HKHealthStore()
     private let caffeineType = HKQuantityType.quantityType(forIdentifier: .dietaryCaffeine)
+    private let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)
 
     var isHealthKitAvailable: Bool {
         HKHealthStore.isHealthDataAvailable()
@@ -43,7 +47,7 @@ final class HealthKitService: HealthKitProviding {
         return healthStore.authorizationStatus(for: caffeineType)
     }
 
-    func requestAuthorization() async throws {
+    func requestCaffeineAuthorization() async throws {
         guard isHealthKitAvailable else {
             throw HealthKitError.healthDataUnavailable
         }
@@ -55,6 +59,43 @@ final class HealthKitService: HealthKitProviding {
             toShare: [caffeineType],
             read: [caffeineType]
         )
+    }
+
+    func requestSleepAuthorization() async throws {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.healthDataUnavailable
+        }
+        guard let sleepType else {
+            throw HealthKitError.sleepAnalysisNotAvailable
+        }
+
+        try await healthStore.requestAuthorization(
+            toShare: [],
+            read: [sleepType]
+        )
+    }
+
+    func sleepAuthorizationRequestStatus() async throws -> HKAuthorizationRequestStatus {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.healthDataUnavailable
+        }
+        guard let sleepType else {
+            throw HealthKitError.sleepAnalysisNotAvailable
+        }
+
+        return try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<HKAuthorizationRequestStatus, Error>) in
+            healthStore.getRequestStatusForAuthorization(
+                toShare: [],
+                read: [sleepType]
+            ) { status, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: status)
+                }
+            }
+        }
     }
 
     func saveCaffeine(
@@ -141,6 +182,79 @@ final class HealthKitService: HealthKitProviding {
                 appEntryID: entryID,
                 displayName: displayName
             )
+        }
+    }
+
+    func fetchSleepSamples(
+        from startDate: Date,
+        to endDate: Date = .now
+    ) async throws -> [HealthSleepSample] {
+        guard let sleepType else {
+            throw HealthKitError.sleepAnalysisNotAvailable
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: [.strictEndDate]
+        )
+        let descriptor = NSSortDescriptor(
+            key: HKSampleSortIdentifierStartDate,
+            ascending: true
+        )
+
+        let samples = try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<[HKCategorySample], Error>) in
+            let query = HKSampleQuery(
+                sampleType: sleepType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [descriptor]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                continuation.resume(
+                    returning: samples as? [HKCategorySample] ?? []
+                )
+            }
+            healthStore.execute(query)
+        }
+
+        return samples.compactMap { sample in
+            guard let stage = healthSleepStage(for: sample.value) else {
+                return nil
+            }
+            return HealthSleepSample(
+                id: sample.uuid,
+                stage: stage,
+                startDate: sample.startDate,
+                endDate: sample.endDate
+            )
+        }
+    }
+
+    private func healthSleepStage(for rawValue: Int) -> HealthSleepStage? {
+        guard let value = HKCategoryValueSleepAnalysis(rawValue: rawValue) else {
+            return nil
+        }
+        switch value {
+        case .inBed:
+            return .inBed
+        case .awake:
+            return .awake
+        case .asleepUnspecified:
+            return .asleepUnspecified
+        case .asleepCore:
+            return .asleepCore
+        case .asleepDeep:
+            return .asleepDeep
+        case .asleepREM:
+            return .asleepREM
+        @unknown default:
+            return nil
         }
     }
 }

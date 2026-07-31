@@ -73,6 +73,24 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testHomePresentsOptionalSleepContext() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let sleepContext = app.otherElements["health-insights-card"]
+        if !sleepContext.waitForExistence(timeout: 2) {
+            app.swipeUp()
+        }
+
+        XCTAssertTrue(sleepContext.waitForExistence(timeout: 3))
+
+        let chooseAccess = app.buttons["choose-sleep-access-button"]
+        if chooseAccess.exists {
+            XCTAssertTrue(chooseAccess.isHittable)
+        }
+    }
+
+    @MainActor
     private func navigationButton(
         named name: String,
         in app: XCUIApplication

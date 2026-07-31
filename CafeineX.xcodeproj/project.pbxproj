@@ -405,7 +405,7 @@
 				DEVELOPMENT_TEAM = Z596R45PA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads caffeine records from Apple Health to keep your caffeine timeline complete.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -440,7 +440,7 @@
 				DEVELOPMENT_TEAM = Z596R45PA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads caffeine records from Apple Health to keep your caffeine timeline complete.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

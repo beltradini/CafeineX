@@ -15,15 +15,8 @@ struct CafeineXApp: App {
     @State private var appearanceStore = AppearanceStore()
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema(versionedSchema: CafeineXSchemaV4.self)
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            let container = try ModelContainer(
-                for: schema,
-                migrationPlan: CafeineXMigrationPlan.self,
-                configurations: [modelConfiguration]
-            )
+            let container = try CafeineXStoreFactory.makePersistentContainer()
             DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
             return container
         } catch {

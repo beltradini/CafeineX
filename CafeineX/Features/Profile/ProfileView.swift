@@ -284,12 +284,21 @@ struct ProfileView: View {
     }
 
     private var healthSubtitle: String {
-        switch viewModel.healthAccessState {
+        let caffeine: String = switch viewModel.healthAccessState {
         case .unavailable: "Unavailable"
-        case .notRequested: "Not connected"
-        case .writeEnabled: "Connected"
-        case .writeDisabled: "Write access off"
+        case .notRequested: "Caffeine not connected"
+        case .writeEnabled: "Caffeine connected"
+        case .writeDisabled: "Caffeine write off"
         }
+        let sleep: String = switch viewModel.sleepDataState {
+        case .unavailable: "sleep unavailable"
+        case .notRequested: "sleep optional"
+        case .loading: "reading sleep"
+        case .noData: "no readable sleep"
+        case .available: "sleep snapshot ready"
+        case .failed: "sleep unavailable"
+        }
+        return "\(caffeine) • \(sleep)"
     }
 
     private func ensureProfileExists() {

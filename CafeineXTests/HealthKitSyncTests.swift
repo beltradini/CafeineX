@@ -144,7 +144,13 @@ private final class MockHealthKitService: HealthKitProviding {
         self.samples = samples
     }
 
-    func requestAuthorization() async throws {}
+    func requestCaffeineAuthorization() async throws {}
+
+    func requestSleepAuthorization() async throws {}
+
+    func sleepAuthorizationRequestStatus() async throws -> HKAuthorizationRequestStatus {
+        .shouldRequest
+    }
 
     func saveCaffeine(
         milligrams: Double,
@@ -165,5 +171,12 @@ private final class MockHealthKitService: HealthKitProviding {
 
     func fetchCaffeineSamples(from startDate: Date, to endDate: Date) async throws -> [HealthCaffeineSample] {
         samples.filter { $0.consumedAt >= startDate && $0.consumedAt <= endDate }
+    }
+
+    func fetchSleepSamples(
+        from startDate: Date,
+        to endDate: Date
+    ) async throws -> [HealthSleepSample] {
+        []
     }
 }
