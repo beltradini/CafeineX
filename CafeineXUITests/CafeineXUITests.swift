@@ -91,6 +91,26 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testCigaretteIntelligenceLogsAndUndoesOneEvent() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let card = app.otherElements["cigarette-intelligence-card"]
+        for _ in 0..<4 where !card.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(card.waitForExistence(timeout: 3))
+
+        let logButton = app.buttons["Log One Cigarette"]
+        XCTAssertTrue(logButton.waitForExistence(timeout: 3))
+        logButton.tap()
+
+        let undo = app.buttons["Undo"]
+        XCTAssertTrue(undo.waitForExistence(timeout: 3))
+        undo.tap()
+    }
+
+    @MainActor
     private func navigationButton(
         named name: String,
         in app: XCUIApplication

@@ -18,6 +18,13 @@ struct CafeineXApp: App {
         do {
             let container = try CafeineXStoreFactory.makePersistentContainer()
             DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
+            let profiles = (try? container.mainContext.fetch(FetchDescriptor<CigaretteProfile>())) ?? []
+            let preferences = (try? container.mainContext.fetch(FetchDescriptor<CigarettePreferences>())) ?? []
+            CigaretteLibrary.bootstrapIfNeeded(
+                profiles: profiles,
+                preferences: preferences,
+                context: container.mainContext
+            )
             return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")

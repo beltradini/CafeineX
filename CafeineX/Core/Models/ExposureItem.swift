@@ -55,7 +55,9 @@ enum ExposureItem: Identifiable {
         case .caffeine(let entry):
             "\(Int(entry.caffeineMG.rounded())) mg"
         case .nicotine(let entry):
-            entry.unit.formatted(quantity: entry.quantity)
+            entry.product == .cigarette
+                ? "\(entry.quantity.formatted(.number.precision(.fractionLength(0...1)))) \(entry.quantity == 1 ? "cigarette" : "cigarettes")"
+                : entry.unit.formatted(quantity: entry.quantity)
         }
     }
 

@@ -12,7 +12,7 @@ enum CafeineXStoreFactory {
         storeURL: URL = defaultStoreURL,
         fileManager: FileManager = .default
     ) throws -> ModelContainer {
-        let schema = Schema(versionedSchema: CafeineXSchemaV4.self)
+        let schema = Schema(versionedSchema: CafeineXSchemaV5.self)
         let configuration = ModelConfiguration(
             schema: schema,
             url: storeURL,
@@ -61,7 +61,7 @@ enum LegacyV3StoreRecovery {
 
         do {
             try removeStoreFiles(at: storeURL, fileManager: fileManager)
-            let container = try makeEmptyV4Container(at: storeURL)
+            let container = try makeEmptyCurrentContainer(at: storeURL)
             try importSnapshot(snapshot, into: container)
             DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
             return container
@@ -86,8 +86,8 @@ enum LegacyV3StoreRecovery {
         }
     }
 
-    private static func makeEmptyV4Container(at storeURL: URL) throws -> ModelContainer {
-        let schema = Schema(versionedSchema: CafeineXSchemaV4.self)
+    private static func makeEmptyCurrentContainer(at storeURL: URL) throws -> ModelContainer {
+        let schema = Schema(versionedSchema: CafeineXSchemaV5.self)
         let configuration = ModelConfiguration(
             schema: schema,
             url: storeURL,

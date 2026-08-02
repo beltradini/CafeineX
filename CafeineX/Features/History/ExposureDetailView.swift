@@ -7,6 +7,9 @@ struct ExposureDetailView: View {
 
     let item: ExposureItem
 
+    @Query private var cigaretteDetailsValues: [CigaretteEventDetails]
+    @Query private var cigaretteProfiles: [CigaretteProfile]
+
     @State private var isEditing = false
     @State private var isConfirmingDeletion = false
 
@@ -49,6 +52,24 @@ struct ExposureDetailView: View {
 
                     if let note = item.note {
                         LabeledContent("Note", value: note)
+                    }
+                }
+
+                if let cigaretteDetails {
+                    Section("Cigarette Context") {
+                        if let profile = cigaretteProfile(for: cigaretteDetails) {
+                            LabeledContent("Product", value: profile.name)
+                        }
+                        if let context = cigaretteDetails.context {
+                            LabeledContent("Context") {
+                                Label(context.title, systemImage: context.symbol)
+                            }
+                        } else {
+                            LabeledContent("Context", value: "Not recorded")
+                        }
+                        Text("Patterns describe timing in your records. They do not estimate absorbed nicotine or prove health effects.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -107,11 +128,25 @@ struct ExposureDetailView: View {
         item.kind == .caffeine ? CXTheme.caffeineAccent : CXTheme.nicotineAccent
     }
 
+    private var cigaretteDetails: CigaretteEventDetails? {
+        guard case .nicotine(let entry) = item, entry.product == .cigarette else { return nil }
+        return cigaretteDetailsValues.first { $0.nicotineEntryID == entry.id }
+    }
+
+    private func cigaretteProfile(for details: CigaretteEventDetails) -> CigaretteProfile? {
+        guard let identifier = details.cigaretteProfileID else { return nil }
+        return cigaretteProfiles.first { $0.id == identifier }
+    }
+
     private func delete() {
         switch item {
         case .caffeine(let entry):
             modelContext.delete(entry)
         case .nicotine(let entry):
+            let identifier = entry.id
+            if let details = cigaretteDetailsValues.first(where: { $0.nicotineEntryID == identifier }) {
+                modelContext.delete(details)
+            }
             modelContext.delete(entry)
         }
         try? modelContext.save()

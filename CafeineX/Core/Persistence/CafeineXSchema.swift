@@ -51,6 +51,18 @@ enum CafeineXSchemaV4: VersionedSchema {
     }
 }
 
+enum CafeineXSchemaV5: VersionedSchema {
+    static let versionIdentifier = Schema.Version(5, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        CafeineXSchemaV4.models + [
+            CigaretteProfile.self,
+            CigaretteEventDetails.self,
+            CigarettePreferences.self,
+        ]
+    }
+}
+
 enum CafeineXMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
@@ -58,6 +70,7 @@ enum CafeineXMigrationPlan: SchemaMigrationPlan {
             CafeineXSchemaV2.self,
             CafeineXSchemaV3.self,
             CafeineXSchemaV4.self,
+            CafeineXSchemaV5.self,
         ]
     }
 
@@ -74,6 +87,10 @@ enum CafeineXMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: CafeineXSchemaV3.self,
                 toVersion: CafeineXSchemaV4.self
+            ),
+            .lightweight(
+                fromVersion: CafeineXSchemaV4.self,
+                toVersion: CafeineXSchemaV5.self
             ),
         ]
     }

@@ -13,6 +13,8 @@ struct ProfileView: View {
     @Query private var checkIns: [AwarenessCheckIn]
     @Query private var drinks: [Drink]
     @Query private var drinkDetails: [DrinkDetails]
+    @Query private var cigaretteProfiles: [CigaretteProfile]
+    @Query private var cigarettePreferences: [CigarettePreferences]
 
     @Bindable var viewModel: HomeViewModel
     @State private var editingProfile: UserProfile?
@@ -93,7 +95,7 @@ struct ProfileView: View {
 
                 Section("About") {
                     LabeledContent("App", value: "CafeineX")
-                    LabeledContent("Data model", value: "SwiftData V4")
+                    LabeledContent("Data model", value: "SwiftData V5")
                     LabeledContent("Purpose", value: "Mindful exposure guidance")
                 }
             }
@@ -119,6 +121,11 @@ struct ProfileView: View {
         .task {
             ensureProfileExists()
             DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+            CigaretteLibrary.bootstrapIfNeeded(
+                profiles: cigaretteProfiles,
+                preferences: cigarettePreferences,
+                context: modelContext
+            )
         }
     }
 
@@ -211,6 +218,17 @@ struct ProfileView: View {
                     tint: CXTheme.caffeineAccent
                 )
             }
+
+            NavigationLink {
+                MyCigarettesView()
+            } label: {
+                settingsRow(
+                    title: "My Cigarettes",
+                    subtitle: "\(activeCigarettes.count) active • \(favoriteCigarettes.count) favorites",
+                    symbol: "smoke.fill",
+                    tint: CXTheme.nicotineAccent
+                )
+            }
         }
     }
 
@@ -258,6 +276,14 @@ struct ProfileView: View {
 
     private var favoriteDrinks: [Drink] {
         activeDrinks.filter(\.isFavorite)
+    }
+
+    private var activeCigarettes: [CigaretteProfile] {
+        cigaretteProfiles.filter { !$0.isArchived }
+    }
+
+    private var favoriteCigarettes: [CigaretteProfile] {
+        activeCigarettes.filter(\.isFavorite)
     }
 
     private var streakSummary: StreakSummary {

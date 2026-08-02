@@ -405,6 +405,8 @@
 				DEVELOPMENT_TEAM = Z596R45PA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CafeineX;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -420,6 +422,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -440,6 +446,8 @@
 				DEVELOPMENT_TEAM = Z596R45PA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CafeineX;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -455,6 +463,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;

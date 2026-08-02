@@ -13,6 +13,9 @@ struct HomeView: View {
     @Query private var drinkDetails: [DrinkDetails]
     @Query private var profiles: [UserProfile]
     @Query private var checkIns: [AwarenessCheckIn]
+    @Query private var cigaretteProfiles: [CigaretteProfile]
+    @Query private var cigaretteDetails: [CigaretteEventDetails]
+    @Query private var cigarettePreferences: [CigarettePreferences]
 
     @Bindable var viewModel: HomeViewModel
 
@@ -51,6 +54,12 @@ struct HomeView: View {
                     if let context = viewModel.dailyExposureContext {
                         DailyExposureCard(context: context)
                     }
+
+                    CigaretteIntelligenceCard(
+                        summary: cigaretteSummary,
+                        goal: cigarettePreference?.goal ?? .awareness,
+                        addCigarette: addOneCigarette
+                    )
 
                     HealthInsightsCard(
                         state: viewModel.sleepDataState,
@@ -145,6 +154,11 @@ struct HomeView: View {
         .sensoryFeedback(.success, trigger: viewModel.feedback?.id)
         .task {
             DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+            CigaretteLibrary.bootstrapIfNeeded(
+                profiles: cigaretteProfiles,
+                preferences: cigarettePreferences,
+                context: modelContext
+            )
             ensureProfileExists()
             updateGuidancePreferences()
             viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
@@ -224,6 +238,42 @@ struct HomeView: View {
             }
     }
 
+    private var cigarettePreference: CigarettePreferences? {
+        cigarettePreferences.first
+    }
+
+    private var favoriteCigarette: CigaretteProfile? {
+        cigaretteProfiles
+            .filter { !$0.isArchived }
+            .sorted {
+                if $0.isFavorite != $1.isFavorite { return $0.isFavorite && !$1.isFavorite }
+                return ($0.favoriteOrder ?? .max) < ($1.favoriteOrder ?? .max)
+            }
+            .first
+    }
+
+    private var cigaretteSummary: CigaretteIntelligenceSummary {
+        let detailsByEntry = Dictionary(uniqueKeysWithValues: cigaretteDetails.map { ($0.nicotineEntryID, $0) })
+        let preference = cigarettePreference
+        return CigaretteEngine(configuration: .init(
+            pairingWindow: TimeInterval((preference?.pairingWindowMinutes ?? 30) * 60),
+            sleepProtectionWindow: TimeInterval((preference?.sleepProtectionMinutes ?? 240) * 60),
+            sleepSchedule: sleepScheduleStore.schedule
+        )).makeSummary(
+            cigaretteEvents: nicotineEntries
+                .filter { $0.product == .cigarette }
+                .map {
+                    CigaretteEvent(
+                        id: $0.id,
+                        usedAt: $0.usedAt,
+                        quantity: $0.quantity,
+                        context: detailsByEntry[$0.id]?.context
+                    )
+                },
+            caffeineDoses: entries.map(\.dose)
+        )
+    }
+
     private var streakSummary: StreakSummary {
         StreakEngine().makeSummary(
             checkInDates: checkIns.map(\.day),
@@ -252,6 +302,14 @@ struct HomeView: View {
             name: drink.name,
             caffeineMG: drink.caffeineMG,
             drink: drink,
+            context: modelContext
+        )
+    }
+
+    private func addOneCigarette() {
+        _ = viewModel.addCigarette(
+            profileID: favoriteCigarette?.id,
+            profiles: cigaretteProfiles,
             context: modelContext
         )
     }
@@ -303,7 +361,7 @@ struct HomeView: View {
 
             Button("Undo") {
                 withAnimation {
-                    _ = viewModel.undoLastCaffeineAdd(context: modelContext)
+                    _ = viewModel.undoLastAdd(context: modelContext)
                 }
             }
             .font(.subheadline.bold())

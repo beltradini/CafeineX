@@ -1,0 +1,69 @@
+{
+  "campaign": "CafeineX Private Pilot \u2014 Instagram Stories",
+  "language": "English",
+  "platform": "Instagram Stories",
+  "dimensions": "1080x1920",
+  "destination": "https://cafeinex.com/",
+  "source_assets": [
+    "/Users/alexbeltran/Desktop/CafeineX-iOS-Default-1024x1024@1x.png",
+    "/Users/alexbeltran/Desktop/Screenshot iPhone Air 07-31-2026 at 12.54.24\u202fPM.png",
+    "/Users/alexbeltran/Desktop/Screenshot iPhone Air 07-31-2026 at 11.05.29\u202fAM.png",
+    "/Users/alexbeltran/Desktop/CafineXLanding.png",
+    "/Users/alexbeltran/Desktop/CafeineX/Marketing/ads/backgrounds/cx-ad-02-timing-bg.png",
+    "/Users/alexbeltran/Desktop/CafeineX/Marketing/ads/backgrounds/cx-ad-04-pilot-bg.png"
+  ],
+  "exports": [
+    {
+      "file": "cafeinex-story-01-active-context.png",
+      "route": "Active context / hero",
+      "width": 1080,
+      "height": 1920,
+      "safe_zone": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "b3eb216feb979ebf0f5417995b1a6c88d3449024a5d0d9d268261fac15a776b5"
+    },
+    {
+      "file": "cafeinex-story-02-timing-matters.png",
+      "route": "Timing and uncertainty",
+      "width": 1080,
+      "height": 1920,
+      "safe_zone": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "169f77a3039c776af4d6bcd75495ac3e3828a042cf5a9b45fc81217266e65701"
+    },
+    {
+      "file": "cafeinex-story-03-clearer-patterns.png",
+      "route": "Searchable history",
+      "width": 1080,
+      "height": 1920,
+      "safe_zone": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "16e07f0cbcb37770e1f6c5ade26d535c17930a6dd10ccf72f5986ffda74ef3dd"
+    },
+    {
+      "file": "cafeinex-story-04-privacy-by-design.png",
+      "route": "Privacy-first pilot",
+      "width": 1080,
+      "height": 1920,
+      "safe_zone": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "1d00e13db646150a910182a9c4bcd79af980d814b8a25d5feca52ef338dd7864"
+    }
+  ]
+}

@@ -5,6 +5,8 @@ struct ExposureEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @FocusState private var focusedField: Field?
+    @Query private var cigaretteProfiles: [CigaretteProfile]
+    @Query private var cigaretteDetailsValues: [CigaretteEventDetails]
 
     let item: ExposureItem
 
@@ -16,6 +18,8 @@ struct ExposureEditorView: View {
     @State private var nicotineUnit: NicotineUnit
     @State private var nicotineDate: Date
     @State private var nicotineNote: String
+    @State private var cigaretteProfileID: UUID?
+    @State private var cigaretteContext: CigaretteContext?
     @State private var errorMessage: String?
 
     private enum Field: Hashable {
@@ -37,6 +41,8 @@ struct ExposureEditorView: View {
             _nicotineUnit = State(initialValue: .pieces)
             _nicotineDate = State(initialValue: .now)
             _nicotineNote = State(initialValue: "")
+            _cigaretteProfileID = State(initialValue: nil)
+            _cigaretteContext = State(initialValue: nil)
         case .nicotine(let entry):
             _caffeineName = State(initialValue: "")
             _caffeineMG = State(initialValue: 1)
@@ -46,6 +52,8 @@ struct ExposureEditorView: View {
             _nicotineUnit = State(initialValue: entry.unit)
             _nicotineDate = State(initialValue: entry.usedAt)
             _nicotineNote = State(initialValue: entry.note ?? "")
+            _cigaretteProfileID = State(initialValue: nil)
+            _cigaretteContext = State(initialValue: nil)
         }
     }
 
@@ -102,6 +110,12 @@ struct ExposureEditorView: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .task {
+            guard case .nicotine(let entry) = item,
+                  let details = cigaretteDetailsValues.first(where: { $0.nicotineEntryID == entry.id }) else { return }
+            cigaretteProfileID = details.cigaretteProfileID
+            cigaretteContext = details.context
+        }
     }
 
     private var caffeineForm: some View {
@@ -164,6 +178,24 @@ struct ExposureEditorView: View {
                     .lineLimit(1...3)
                     .focused($focusedField, equals: .note)
             }
+
+
+            if nicotineProduct == .cigarette {
+                Section("Cigarette Intelligence") {
+                    Picker("Saved cigarette", selection: $cigaretteProfileID) {
+                        Text("Unspecified").tag(UUID?.none)
+                        ForEach(cigaretteProfiles.filter { !$0.isArchived }) { profile in
+                            Text(profile.name).tag(Optional(profile.id))
+                        }
+                    }
+                    Picker("Context", selection: $cigaretteContext) {
+                        Text("Not set").tag(CigaretteContext?.none)
+                        ForEach(CigaretteContext.allCases) { context in
+                            Label(context.title, systemImage: context.symbol).tag(Optional(context))
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -193,6 +225,21 @@ struct ExposureEditorView: View {
             entry.usedAt = min(nicotineDate, .now)
             let normalizedNote = nicotineNote.trimmingCharacters(in: .whitespacesAndNewlines)
             entry.note = normalizedNote.isEmpty ? nil : normalizedNote
+            if nicotineProduct == .cigarette {
+                if let details = cigaretteDetailsValues.first(where: { $0.nicotineEntryID == entry.id }) {
+                    details.cigaretteProfileID = cigaretteProfileID
+                    details.context = cigaretteContext
+                    details.updatedAt = .now
+                } else {
+                    modelContext.insert(CigaretteEventDetails(
+                        nicotineEntryID: entry.id,
+                        cigaretteProfileID: cigaretteProfileID,
+                        context: cigaretteContext
+                    ))
+                }
+            } else if let details = cigaretteDetailsValues.first(where: { $0.nicotineEntryID == entry.id }) {
+                modelContext.delete(details)
+            }
         }
 
         do {

@@ -12,6 +12,7 @@ struct AppShellView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppearanceStore.self) private var appearanceStore
     @Query private var drinks: [Drink]
+    @Query private var cigaretteProfiles: [CigaretteProfile]
 
     @State private var selectedTab = AppTab.home
     @State private var quickAddCoordinator = QuickAddCoordinator()
@@ -67,15 +68,35 @@ struct AppShellView: View {
                 },
                 context: modelContext
             )
-        case .nicotine(let product, let quantity, let unit, let date, let note):
-            homeViewModel.addNicotine(
-                product: product,
-                quantity: quantity,
-                unit: unit,
-                usedAt: date,
-                note: note,
-                context: modelContext
-            )
+        case .nicotine(
+            let product,
+            let quantity,
+            let unit,
+            let date,
+            let note,
+            let profileID,
+            let cigaretteContext
+        ):
+            if product == .cigarette {
+                homeViewModel.addCigarette(
+                    quantity: quantity,
+                    usedAt: date,
+                    profileID: profileID,
+                    cigaretteContext: cigaretteContext,
+                    note: note,
+                    profiles: cigaretteProfiles,
+                    context: modelContext
+                )
+            } else {
+                homeViewModel.addNicotine(
+                    product: product,
+                    quantity: quantity,
+                    unit: unit,
+                    usedAt: date,
+                    note: note,
+                    context: modelContext
+                )
+            }
         }
     }
 }

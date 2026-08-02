@@ -6,6 +6,7 @@ struct HistoryView: View {
         case all
         case caffeine
         case nicotine
+        case cigarettes
 
         var id: Self { self }
 
@@ -14,6 +15,7 @@ struct HistoryView: View {
             case .all: "All"
             case .caffeine: "Caffeine"
             case .nicotine: "Nicotine"
+            case .cigarettes: "Cigarettes"
             }
         }
     }
@@ -59,6 +61,8 @@ struct HistoryView: View {
 
     @Query(sort: \NicotineEntry.usedAt, order: .reverse)
     private var nicotineEntries: [NicotineEntry]
+
+    @Query private var cigaretteDetails: [CigaretteEventDetails]
 
     @State private var searchText = ""
     @State private var substanceFilter = SubstanceFilter.all
@@ -280,13 +284,18 @@ struct HistoryView: View {
     }
 
     private var filteredItems: [ExposureItem] {
-        searchEngine.results(
+        let results = searchEngine.results(
             in: allItems,
             query: searchText,
             kind: selectedKind
         )
         .filter(matchesSource)
         .filter(matchesDateRange)
+        guard substanceFilter == .cigarettes else { return results }
+        return results.filter {
+            guard case .nicotine(let entry) = $0 else { return false }
+            return entry.product == .cigarette
+        }
     }
 
     private var selectedKind: ExposureKind? {
@@ -294,6 +303,7 @@ struct HistoryView: View {
         case .all: nil
         case .caffeine: .caffeine
         case .nicotine: .nicotine
+        case .cigarettes: nil
         }
     }
 
@@ -381,6 +391,10 @@ struct HistoryView: View {
         case .caffeine(let entry):
             modelContext.delete(entry)
         case .nicotine(let entry):
+            let identifier = entry.id
+            if let details = cigaretteDetails.first(where: { $0.nicotineEntryID == identifier }) {
+                modelContext.delete(details)
+            }
             modelContext.delete(entry)
         }
         try? modelContext.save()

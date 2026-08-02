@@ -1,0 +1,20 @@
+date,local_time,channel,format,objective,asset_or_script,copy_id,cta,launch_gate
+2026-08-03,10:15,Instagram,Story poll,Audience research,ig-story-02-research-poll.png,IG-S01,Reply to the poll,May publish before TestFlight link
+2026-08-03,15:17,X,Single post,Own the decision moment,x-card-01-decision-hook.png,X-01,Reply with what decides the next cup,May publish before TestFlight link
+2026-08-04,15:05,Instagram,Reel,Discovery,REEL-01,IG-R01,Save and follow for pilot opening,May publish before TestFlight link
+2026-08-05,10:30,X,Three-post thread,Product education,x-card-02-product-proof.png,X-T01,Follow for pilot access,May publish before TestFlight link
+2026-08-05,15:17,Instagram,Feed 4:5,Combined differentiation,ig-feed-05-two-habits-one-timeline.png,IG-05,Reply with the pattern you want visible,May publish before TestFlight link
+2026-08-06,15:17,Instagram,Feed 4:5,Campaign hook,ig-feed-01-decision-hook.png,IG-01,Join the private pilot,Requires live TestFlight path
+2026-08-07,09:45,X,Single post,Trust,x-card-02-product-proof.png,X-02,Read how it works,May publish before TestFlight link
+2026-08-08,15:17,Instagram,Feed 4:5,Product proof,ig-feed-02-product-proof.png,IG-02,Join through link in bio,Requires live TestFlight path
+2026-08-09,11:00,Instagram,Story,Conversion,ig-story-01-317-check.png,IG-S02,Tap TestFlight link sticker,Requires live TestFlight path
+2026-08-10,15:17,X,Pinned post,Pilot conversion,x-card-03-pilot-mission.png,X-03,Open TestFlight,Requires live TestFlight path
+2026-08-11,10:15,Instagram,Feed 4:5,Privacy and trust,ig-feed-03-privacy.png,IG-03,Read privacy page,May publish before TestFlight link
+2026-08-12,15:05,X,Question post,Recruit qualified testers,None,X-04,Reply with your decision moment,May publish before TestFlight link
+2026-08-12,18:00,X,Single post,Cigarette tracking proof,x-card-04-two-habits-one-timeline.png,X-07,Join the private pilot,Requires live TestFlight path
+2026-08-13,15:17,Instagram,Feed 4:5,Pilot activation,ig-feed-04-pilot-mission.png,IG-04,Start the 7-day mission,Requires live TestFlight path
+2026-08-14,10:30,X,Build-in-public update,None,X-05,Join and pressure-test the changed moment,Requires live TestFlight path and real change
+2026-08-15,15:17,Instagram,Reel,Product proof,REEL-02,IG-R02,Try the decision window,Requires live TestFlight path
+2026-08-15,19:00,Instagram,Feed 4:5,Cigarette context,ig-feed-06-cigarette-context.png,IG-06,Test cigarette intelligence,Requires live TestFlight path
+2026-08-16,11:00,Instagram,Story Q&A,Pilot objections,None,IG-S03,Ask anything about the pilot,May publish before TestFlight link
+2026-08-16,15:17,X,Seven-day checkpoint,None,X-06,Send one useful confusing or wrong moment,Requires active pilot

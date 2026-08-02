@@ -6,6 +6,7 @@ struct SearchView: View {
         case all
         case caffeine
         case nicotine
+        case cigarettes
 
         var id: Self { self }
 
@@ -14,6 +15,7 @@ struct SearchView: View {
             case .all: "All"
             case .caffeine: "Caffeine"
             case .nicotine: "Nicotine"
+            case .cigarettes: "Cigarettes"
             }
         }
 
@@ -22,6 +24,7 @@ struct SearchView: View {
             case .all: nil
             case .caffeine: .caffeine
             case .nicotine: .nicotine
+            case .cigarettes: nil
             }
         }
     }
@@ -247,11 +250,16 @@ struct SearchView: View {
     }
 
     private var eventResults: [ExposureItem] {
-        searchEngine.results(
+        let results = searchEngine.results(
             in: allItems,
             query: searchText,
             kind: scope.kind
         )
+        guard scope == .cigarettes else { return results }
+        return results.filter {
+            guard case .nicotine(let entry) = $0 else { return false }
+            return entry.product == .cigarette
+        }
     }
 
     private var settingsResults: [SettingsDestination] {

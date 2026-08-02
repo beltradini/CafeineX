@@ -357,6 +357,100 @@ final class HomeViewModel {
         return true
     }
 
+    @discardableResult
+    func addCigarette(
+        quantity: Double = 1,
+        usedAt: Date = .now,
+        profileID: UUID? = nil,
+        cigaretteContext: CigaretteContext? = nil,
+        note: String? = nil,
+        profiles: [CigaretteProfile] = [],
+        context: ModelContext
+    ) -> Bool {
+        guard quantity.isFinite, (0.1...100).contains(quantity) else {
+            healthMessage = "Enter a cigarette count between 0.1 and 100."
+            return false
+        }
+
+        let safeDate = min(usedAt, .now)
+        let entry = NicotineEntry(
+            product: .cigarette,
+            quantity: quantity,
+            unit: .pieces,
+            usedAt: safeDate,
+            source: .manual,
+            note: note
+        )
+        let details = CigaretteEventDetails(
+            nicotineEntryID: entry.id,
+            cigaretteProfileID: profileID,
+            context: cigaretteContext
+        )
+        context.insert(entry)
+        context.insert(details)
+        CigaretteLibrary.recordUse(profileID: profileID, at: safeDate, profiles: profiles)
+
+        do {
+            try context.save()
+        } catch {
+            context.delete(details)
+            context.delete(entry)
+            healthMessage = "CafeineX could not save this cigarette: \(error.localizedDescription)"
+            return false
+        }
+
+        nicotineEntries.append(entry)
+        nicotineEntries.sort { $0.usedAt > $1.usedAt }
+        recalculateStatus()
+        feedback = Feedback(entryID: entry.id, message: "Cigarette logged")
+        return true
+    }
+
+    @discardableResult
+    func undoLastAdd(context: ModelContext) -> Bool {
+        if undoLastCaffeineAdd(context: context) { return true }
+        guard let feedback,
+              let entry = nicotineEntries.first(where: { $0.id == feedback.entryID }) else {
+            return false
+        }
+        let identifier = entry.id
+        let descriptor = FetchDescriptor<CigaretteEventDetails>(
+            predicate: #Predicate { $0.nicotineEntryID == identifier }
+        )
+        if let details = try? context.fetch(descriptor).first {
+            if let profileID = details.cigaretteProfileID,
+               let profiles = try? context.fetch(FetchDescriptor<CigaretteProfile>()),
+               let profile = profiles.first(where: { $0.id == profileID }) {
+                profile.useCount = max(profile.useCount - 1, 0)
+                if profile.lastUsedAt == entry.usedAt {
+                    let allDetails = (try? context.fetch(FetchDescriptor<CigaretteEventDetails>())) ?? []
+                    let relatedEntryIDs = Set(
+                        allDetails
+                            .filter { $0.nicotineEntryID != identifier && $0.cigaretteProfileID == profileID }
+                            .map(\.nicotineEntryID)
+                    )
+                    profile.lastUsedAt = nicotineEntries
+                        .filter { relatedEntryIDs.contains($0.id) }
+                        .map(\.usedAt)
+                        .max()
+                }
+                profile.updatedAt = .now
+            }
+            context.delete(details)
+        }
+        context.delete(entry)
+        do {
+            try context.save()
+        } catch {
+            healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
+            return false
+        }
+        nicotineEntries.removeAll { $0.id == identifier }
+        self.feedback = nil
+        recalculateStatus()
+        return true
+    }
+
     private func saveToHealthKit(_ entry: CaffeineEntry, context: ModelContext) async {
         guard healthAccessState == .writeEnabled else {
             healthMessage = "Saved on this device. Apple Health write access is off."

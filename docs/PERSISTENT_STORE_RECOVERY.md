@@ -18,7 +18,7 @@ A store is eligible only when:
 - SQLite opens read-only and `PRAGMA quick_check` returns `ok`.
 - Core Data metadata contains the single version identifier `3.0.0`.
 - Every expected V3 table exists.
-- V4-only `DrinkDetails` and `PhaseCSchemaState` tables do not exist.
+- Post-V3 `DrinkDetails`, `PhaseCSchemaState`, and cigarette-intelligence tables do not exist.
 - Required UUIDs, text values, dates, and positive quantities can be decoded.
 - Unique identifiers are actually unique.
 
@@ -34,10 +34,10 @@ while attempting its initial normal open.
 3. Write a JSON manifest containing the source version, original error, and
    record counts.
 4. Remove the active V3 store family only after the backup succeeds.
-5. Create an empty V4 container and import all supported records with their
+5. Create an empty current V5 container and import all supported records with their
    original identifiers and timestamps.
 6. Run the idempotent Phase C details backfill.
-7. If creation, import, or saving fails, remove the incomplete V4 files and
+7. If creation, import, or saving fails, remove the incomplete V5 files and
    restore the original V3 store family from the backup.
 
 The backup is intentionally retained after success. CafeineX never silently
@@ -57,7 +57,7 @@ replaces an unsupported store and never treats an unknown layout as recoverable.
 
 `LegacyV3StoreRecoveryTests` creates a sanitized unknown-V3 SQLite fixture and
 opens it through the same `CafeineXStoreFactory` used at app launch. It verifies
-record preservation, V4 relationships, archived metadata, avatar bytes, and the
+record preservation, current relationships, archived metadata, avatar bytes, and the
 backup manifest.
 
 An optional local gate accepts `CAFEINEX_LEGACY_V3_STORE` and validates the same

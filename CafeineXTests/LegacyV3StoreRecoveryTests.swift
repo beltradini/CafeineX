@@ -6,7 +6,7 @@ import Testing
 
 @MainActor
 struct LegacyV3StoreRecoveryTests {
-    @Test func sanitisedUnknownV3StoreIsBackedUpAndRecoveredIntoV4() throws {
+    @Test func sanitisedUnknownV3StoreIsBackedUpAndRecoveredIntoCurrentSchema() throws {
         let directory = try makeTemporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let storeURL = directory.appending(path: "default.store")

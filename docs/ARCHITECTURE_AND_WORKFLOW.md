@@ -4,7 +4,7 @@
 
 CafeineX uses a feature-first shell with explicit boundaries:
 
-1. `CafeineXApp` is the composition root. `CafeineXStoreFactory` first opens `CafeineXSchemaV4` through `CafeineXMigrationPlan`; a narrowly validated historical-V3 recovery path preserves otherwise unrecognized development stores with backup and rollback. The app then performs the idempotent Phase C details backfill, injects app-wide preference stores, and launches `AppShellView`.
+1. `CafeineXApp` is the composition root. `CafeineXStoreFactory` first opens `CafeineXSchemaV5` through `CafeineXMigrationPlan`; a narrowly validated historical-V3 recovery path preserves otherwise unrecognized development stores with backup and rollback. The app then performs the idempotent Phase C details backfill, bootstraps the cigarette library, injects app-wide preference stores, and launches `AppShellView`.
 2. `AppShellView` owns the native adaptive tab shell: Home, History, Profile, and the system Search role. It also presents the single app-wide Quick Add flow.
 3. `HomeView` composes focused dashboard components and observes bounded 30-day caffeine and nicotine queries.
 4. `HistoryView` queries the complete retained local timeline and provides contextual search, substance/source/date filters, daily grouping, detail, editing, deletion, and separate aggregate totals.
@@ -25,6 +25,7 @@ CafeineX uses a feature-first shell with explicit boundaries:
 19. `WeeklySummaryEngine` derives the current calendar week, previous-week comparison, tracked/reviewed days, late-caffeine events, and goal-specific progress from persisted events. The summary is computed rather than persisted, so it cannot become stale.
 20. `HealthKitService` requests dietary caffeine and sleep analysis independently. Sleep access is read-only, optional, and never bundled into the caffeine authorization action.
 21. `SleepSnapshotBuilder` unions overlapping sleep intervals into the latest completed session without persisting raw samples. `HealthInsightsEngine` places local stimulant timing beside that snapshot using explicitly non-causal language and incomplete-data states.
+22. `CigaretteProfile`, `CigaretteEventDetails`, and `CigarettePreferences` extend the V5 store without changing historical model shapes. `CigaretteEngine` derives counts, gaps, caffeine timing pairings, context frequency, weekly comparison, and planned-sleep proximity without estimating absorbed nicotine.
 
 The dashboard keeps the 30-day synchronization window in memory but renders only the 20 most recent rows. `HistoryView` reads every retained local entry; records are not deleted by the dashboard limit or the HealthKit synchronization window.
 
@@ -37,6 +38,10 @@ Manual entry:
 Nicotine entry:
 
 `QuickAddSheet -> AppShellView -> HomeViewModel -> SwiftData save -> NicotineEngine -> DailyExposureContext`
+
+Cigarette intelligence:
+
+`Home one-tap / Quick Add -> NicotineEntry + CigaretteEventDetails -> CigaretteEngine -> Home, History, Search, Profile`
 
 Apple Health sync:
 

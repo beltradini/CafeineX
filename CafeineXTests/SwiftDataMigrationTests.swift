@@ -62,7 +62,7 @@ struct SwiftDataMigrationTests {
             try context.save()
         }
 
-        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV4.self)
+        let versionedSchema = Schema(versionedSchema: CafeineXSchemaV5.self)
         let versionedConfiguration = ModelConfiguration(
             schema: versionedSchema,
             url: storeURL,
@@ -111,14 +111,15 @@ struct SwiftDataMigrationTests {
     }
 
     @Test func migrationPlanDeclaresCurrentSchemaAsItsBaseline() {
-        #expect(CafeineXMigrationPlan.schemas.count == 4)
+        #expect(CafeineXMigrationPlan.schemas.count == 5)
         #expect(CafeineXMigrationPlan.schemas.first == CafeineXSchemaV1.self)
-        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV4.self)
-        #expect(CafeineXMigrationPlan.stages.count == 3)
+        #expect(CafeineXMigrationPlan.schemas.last == CafeineXSchemaV5.self)
+        #expect(CafeineXMigrationPlan.stages.count == 4)
         #expect(CafeineXSchemaV1.versionIdentifier == Schema.Version(1, 0, 0))
         #expect(CafeineXSchemaV2.versionIdentifier == Schema.Version(2, 0, 0))
         #expect(CafeineXSchemaV3.versionIdentifier == Schema.Version(3, 0, 0))
         #expect(CafeineXSchemaV4.versionIdentifier == Schema.Version(4, 0, 0))
+        #expect(CafeineXSchemaV5.versionIdentifier == Schema.Version(5, 0, 0))
     }
 
     @Test func v1StoreMigratesToV2AndAcceptsNicotineEntries() throws {

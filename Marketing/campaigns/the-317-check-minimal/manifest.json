@@ -1,0 +1,136 @@
+{
+  "campaign": "The 3:17 Check \u2014 Minimal Edition",
+  "platform": "Instagram Stories",
+  "dimensions": "1080x1920",
+  "screenshots": false,
+  "generated_photography": false,
+  "backgrounds_are_content_free": true,
+  "exports": [
+    {
+      "file": "backgrounds/cx-gradient-01-decision-window.png",
+      "kind": "blank-gradient-background",
+      "description": "Amber to emerald decision window",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "4287f9a5954487301f9d349b7aa58bf4e03b18b5d25c505645c1306aa72ceadf"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-01.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "c43df229569ec316360d712a2c56bf881ca7cdee73bf400996e3acda777a8546"
+    },
+    {
+      "file": "backgrounds/cx-gradient-02-dual-timeline.png",
+      "kind": "blank-gradient-background",
+      "description": "Violet and amber dual timeline",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "ca466920076a4cc4399e7335051ef4f29b644647994737bada8b2b0521b07421"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-02.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "7b792f792f8eed0245c725870a3c30d69ce028089c70ded7865dea255d67dc1b"
+    },
+    {
+      "file": "backgrounds/cx-gradient-03-honest-range.png",
+      "kind": "blank-gradient-background",
+      "description": "Amber to violet range with emerald resolution",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "f92e2d90bcc23529188346b467558352b7d6b0f7e83080f67116d6d2ab128800"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-03.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "dfbadd7e154fb74740301a418b20edfb2162359dd2578a2081277a25e1728959"
+    },
+    {
+      "file": "backgrounds/cx-gradient-04-cigarette-context.png",
+      "kind": "blank-gradient-background",
+      "description": "Violet context field with restrained amber and green",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "4c41e410a7c7a525be42639a9e5745369af01c3a206e4d01cfbbacde4d5b9b3f"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-04.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "8ee11ee50afc96d1a889e47b72c0464fe7405f0ae03cb73db2769b41ecad2b77"
+    },
+    {
+      "file": "backgrounds/cx-gradient-05-private-signal.png",
+      "kind": "blank-gradient-background",
+      "description": "Emerald privacy signal",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "12560b806012028d96c310b5e210e1849c383409932631a351f60d1fb1d2debf"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-05.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "d9928e35a75cfc7758269fbd3c37f398838f22aecb7569b13585e8264e9264f6"
+    },
+    {
+      "file": "backgrounds/cx-gradient-06-pilot-signal.png",
+      "kind": "blank-gradient-background",
+      "description": "Three-signal pilot gradient",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "51aef56185e95236a5a9308d5ac6e9a8fa618e8a8b6e7a220d72012637a4fced"
+    },
+    {
+      "file": "stories/cafeinex-minimal-story-06.png",
+      "kind": "finished-minimal-story",
+      "width": 1080,
+      "height": 1920,
+      "safe_area": {
+        "top": 150,
+        "bottom": 220,
+        "left": 70,
+        "right": 70
+      },
+      "sha256": "91b313dc71e48cd65bbfc2c1b2ba9e5648db5217318e25f0a37fec3e3cc76e29"
+    }
+  ]
+}

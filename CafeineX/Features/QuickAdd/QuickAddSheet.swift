@@ -13,7 +13,9 @@ enum QuickAddRequest {
         quantity: Double,
         unit: NicotineUnit,
         date: Date,
-        note: String?
+        note: String?,
+        cigaretteProfileID: UUID?,
+        cigaretteContext: CigaretteContext?
     )
 }
 
@@ -22,6 +24,8 @@ struct QuickAddSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Drink.name) private var drinks: [Drink]
     @Query private var drinkDetails: [DrinkDetails]
+    @Query private var cigaretteProfiles: [CigaretteProfile]
+    @Query private var cigarettePreferences: [CigarettePreferences]
     @FocusState private var focusedField: Field?
 
     @State private var kind: QuickAddKind
@@ -34,6 +38,8 @@ struct QuickAddSheet: View {
     @State private var nicotineUnit = NicotineUnit.pieces
     @State private var nicotineDate = Date.now
     @State private var nicotineNote = ""
+    @State private var selectedCigaretteProfileID: UUID?
+    @State private var cigaretteContext: CigaretteContext?
 
     private let onSave: (QuickAddRequest) -> Bool
 
@@ -105,10 +111,16 @@ struct QuickAddSheet: View {
             }
             .task {
                 DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+                CigaretteLibrary.bootstrapIfNeeded(
+                    profiles: cigaretteProfiles,
+                    preferences: cigarettePreferences,
+                    context: modelContext
+                )
                 await Task.yield()
                 if let first = favoriteDrinks.first ?? activeDrinks.first {
                     select(first)
                 }
+                selectedCigaretteProfileID = activeCigaretteProfiles.first?.id
             }
         }
         .presentationDetents([.medium, .large])
@@ -221,6 +233,31 @@ struct QuickAddSheet: View {
                 Text("Product")
             }
 
+            if nicotineProduct == .cigarette {
+                Section("Cigarette Intelligence") {
+                    Picker("Saved cigarette", selection: $selectedCigaretteProfileID) {
+                        Text("Unspecified").tag(UUID?.none)
+                        ForEach(activeCigaretteProfiles) { profile in
+                            Text(profile.name).tag(Optional(profile.id))
+                        }
+                    }
+
+                    Picker("Context", selection: $cigaretteContext) {
+                        Text("Not set").tag(CigaretteContext?.none)
+                        ForEach(CigaretteContext.allCases) { item in
+                            Label(item.title, systemImage: item.symbol)
+                                .tag(Optional(item))
+                        }
+                    }
+
+                    NavigationLink {
+                        MyCigarettesView()
+                    } label: {
+                        Label("Manage My Cigarettes", systemImage: "slider.horizontal.3")
+                    }
+                }
+            }
+
             Section {
                 TextField(
                     "Amount",
@@ -280,7 +317,9 @@ struct QuickAddSheet: View {
                     quantity: nicotineQuantity,
                     unit: nicotineUnit,
                     date: nicotineDate,
-                    note: nicotineNote
+                    note: nicotineNote,
+                    cigaretteProfileID: nicotineProduct == .cigarette ? selectedCigaretteProfileID : nil,
+                    cigaretteContext: nicotineProduct == .cigarette ? cigaretteContext : nil
                 )
             )
         }
@@ -325,6 +364,18 @@ struct QuickAddSheet: View {
 
     private var favoriteDrinks: [Drink] {
         activeDrinks.filter(\.isFavorite)
+    }
+
+    private var activeCigaretteProfiles: [CigaretteProfile] {
+        cigaretteProfiles
+            .filter { !$0.isArchived }
+            .sorted {
+                if $0.isFavorite != $1.isFavorite { return $0.isFavorite && !$1.isFavorite }
+                if $0.favoriteOrder != $1.favoriteOrder {
+                    return ($0.favoriteOrder ?? .max) < ($1.favoriteOrder ?? .max)
+                }
+                return ($0.lastUsedAt ?? .distantPast) > ($1.lastUsedAt ?? .distantPast)
+            }
     }
 
     private var matchedDrinkID: UUID? {
