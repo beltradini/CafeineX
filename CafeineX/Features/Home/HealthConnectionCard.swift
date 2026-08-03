@@ -6,7 +6,7 @@ struct HealthConnectionCard: View {
     let action: () -> Void
 
     var body: some View {
-        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+        CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
             HStack(spacing: 14) {
                 Image(systemName: symbol)
                     .font(.title3.weight(.semibold))

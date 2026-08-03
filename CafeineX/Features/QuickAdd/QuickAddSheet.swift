@@ -81,6 +81,7 @@ struct QuickAddSheet: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .cxContentBackground()
             .navigationTitle("Quick Add")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

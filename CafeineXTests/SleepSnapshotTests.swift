@@ -30,6 +30,8 @@ struct SleepSnapshotTests {
         #expect(try #require(snapshot.awakeDuration) == TimeInterval(60 * 60))
         #expect(snapshot.detailedStageCoverage == 6 * 60 * 60)
         #expect(snapshot.hasDetailedStages)
+        #expect(snapshot.stageIntervals.count == samples.count)
+        #expect(snapshot.stageIntervals.last?.stage == .awake)
     }
 
     @Test func futureAndAwakeOnlySamplesNeverCreateASnapshot() {

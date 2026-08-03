@@ -88,6 +88,7 @@ struct HealthConnectionSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .cxContentBackground()
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
         .task {

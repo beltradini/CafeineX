@@ -45,7 +45,7 @@ struct HomeView: View {
             CXBackgroundView()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: CXTheme.sectionSpacing) {
                     header
 
                     if let status = viewModel.status {
@@ -120,13 +120,14 @@ struct HomeView: View {
                             .accessibilityIdentifier("health-status-message")
                     }
                 }
-                .frame(maxWidth: 900)
+                .frame(maxWidth: CXTheme.screenMaxWidth)
                 .padding(.horizontal, CXTheme.horizontalPadding)
                 .padding(.top, 12)
-                .padding(.bottom, 36)
+                .padding(.bottom, CXTheme.bottomContentInset)
                 .frame(maxWidth: .infinity)
             }
             .scrollDismissesKeyboard(.interactively)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
         .navigationTitle("CafeineX")
         .navigationBarTitleDisplayMode(.inline)
@@ -196,7 +197,7 @@ struct HomeView: View {
 
             Text("Make the next choice with your sleep and active exposure in view.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
         .accessibilityElement(children: .combine)
     }
@@ -376,7 +377,7 @@ struct HomeView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
-        .background(.regularMaterial, in: Capsule())
+        .glassEffect(.regular.interactive())
         .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
         .accessibilityElement(children: .contain)
     }

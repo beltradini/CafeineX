@@ -25,7 +25,7 @@ struct HomeQuickAddView: View {
             }
 
             if favoriteDrinks.isEmpty {
-                CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
                     ContentUnavailableView {
                         Label("No favorite drinks", systemImage: "star")
                     } description: {
@@ -46,7 +46,7 @@ struct HomeQuickAddView: View {
                         Button {
                             addDrink(drink)
                         } label: {
-                            CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                            CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
                                 VStack(spacing: 8) {
                                     Image(systemName: drink.category.symbol)
                                         .font(.title3.weight(.semibold))

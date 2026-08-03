@@ -73,6 +73,7 @@ struct EditProfileView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .cxContentBackground()
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

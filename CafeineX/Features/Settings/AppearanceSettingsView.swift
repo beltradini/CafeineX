@@ -31,6 +31,7 @@ struct AppearanceSettingsView: View {
                 Text("System follows the appearance selected for your device. Liquid Glass and CafeineX backgrounds adapt automatically.")
             }
         }
+        .cxContentBackground()
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
     }

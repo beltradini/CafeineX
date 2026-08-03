@@ -97,6 +97,7 @@ struct DrinkEditorView: View {
                     .lineLimit(2...5)
                 }
             }
+            .cxContentBackground()
             .navigationTitle(drink == nil ? "New Drink" : "Edit Drink")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

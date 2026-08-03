@@ -20,7 +20,7 @@ struct ExposureDetailView: View {
 
             List {
                 Section {
-                    CXGlassCard {
+                    CXSurfaceCard {
                         VStack(spacing: 16) {
                             Image(systemName: item.symbol)
                                 .font(.largeTitle)
@@ -37,6 +37,7 @@ struct ExposureDetailView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     }
+                    .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 }
@@ -95,7 +96,10 @@ struct ExposureDetailView: View {
                     }
                 }
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
+            .cxRootScrollInsets()
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
         .navigationTitle("Event Details")
         .navigationBarTitleDisplayMode(.inline)

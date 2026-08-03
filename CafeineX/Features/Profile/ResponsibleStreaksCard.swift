@@ -4,7 +4,7 @@ struct ResponsibleStreaksCard: View {
     let summary: StreakSummary
 
     var body: some View {
-        CXGlassCard {
+        CXSurfaceCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {

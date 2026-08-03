@@ -6,7 +6,7 @@ struct CigaretteIntelligenceCard: View {
     let addCigarette: () -> Void
 
     var body: some View {
-        CXGlassCard {
+        CXSurfaceCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Label("Cigarette Intelligence", systemImage: "smoke.fill")

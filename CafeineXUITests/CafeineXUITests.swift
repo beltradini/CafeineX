@@ -81,6 +81,19 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testQuickAddOpensWithoutMissingPersistenceEnvironmentCrash() throws {
+        let app = makeApp()
+        app.launch()
+
+        let quickAdd = app.buttons["Quick Add"].firstMatch
+        XCTAssertTrue(quickAdd.waitForExistence(timeout: 8))
+        quickAdd.tap()
+
+        XCTAssertTrue(app.navigationBars["Quick Add"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Add"].exists)
+    }
+
+    @MainActor
     func testCigaretteIntelligenceLogsAndUndoesOneEvent() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = makeApp()
@@ -95,6 +108,31 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(undo.isHittable)
         undo.tap()
         XCTAssertTrue(logButton.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testPrimarySurfacesPassAccessibilityAudit() throws {
+        let app = makeApp()
+        app.launch()
+
+        XCTAssertTrue(navigationButton(named: "Home", in: app).waitForExistence(timeout: 8))
+        try app.performAccessibilityAudit(for: primarySurfaceAuditTypes)
+
+        let history = navigationButton(named: "History", in: app)
+        XCTAssertTrue(history.waitForExistence(timeout: 3))
+        history.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 3))
+        try app.performAccessibilityAudit(for: primarySurfaceAuditTypes)
+
+        let search = navigationButton(named: "Search", in: app)
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
+        search.tap()
+        XCTAssertTrue(app.navigationBars["Search"].waitForExistence(timeout: 3))
+        try app.performAccessibilityAudit(for: primarySurfaceAuditTypes)
+    }
+
+    private var primarySurfaceAuditTypes: XCUIAccessibilityAuditType {
+        .all.subtracting([.contrast, .dynamicType, .hitRegion, .textClipped])
     }
 
     @MainActor

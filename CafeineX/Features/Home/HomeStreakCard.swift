@@ -5,7 +5,7 @@ struct HomeStreakCard: View {
     let reviewToday: () -> Void
 
     var body: some View {
-        CXGlassCard {
+        CXSurfaceCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {

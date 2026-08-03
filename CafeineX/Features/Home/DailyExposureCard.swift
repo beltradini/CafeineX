@@ -4,7 +4,7 @@ struct DailyExposureCard: View {
     let context: DailyExposureContext
 
     var body: some View {
-        CXGlassCard {
+        CXSurfaceCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -28,14 +28,14 @@ struct DailyExposureCard: View {
                     columns: [GridItem(.adaptive(minimum: 145), spacing: 12)],
                     spacing: 12
                 ) {
-                    CXMetricCard(
+                    CXMetricTile(
                         title: "Nicotine today",
                         value: context.nicotineStatus.amountsToday.displayText,
                         symbol: "waveform.path.ecg",
                         tint: CXTheme.nicotineAccent
                     )
 
-                    CXMetricCard(
+                    CXMetricTile(
                         title: "Active windows",
                         value: context.nicotineStatus.activeEventCount.formatted(),
                         symbol: "clock.badge",

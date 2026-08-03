@@ -42,6 +42,27 @@ nonisolated struct SleepSnapshot: Equatable, Sendable {
     let awakeDuration: TimeInterval?
     let detailedStageCoverage: TimeInterval
     let sampleCount: Int
+    let stageIntervals: [HealthSleepSample]
+
+    init(
+        sleepStart: Date,
+        sleepEnd: Date,
+        totalAsleep: TimeInterval,
+        timeInBed: TimeInterval?,
+        awakeDuration: TimeInterval?,
+        detailedStageCoverage: TimeInterval,
+        sampleCount: Int,
+        stageIntervals: [HealthSleepSample] = []
+    ) {
+        self.sleepStart = sleepStart
+        self.sleepEnd = sleepEnd
+        self.totalAsleep = totalAsleep
+        self.timeInBed = timeInBed
+        self.awakeDuration = awakeDuration
+        self.detailedStageCoverage = detailedStageCoverage
+        self.sampleCount = sampleCount
+        self.stageIntervals = stageIntervals
+    }
 
     var hasDetailedStages: Bool {
         detailedStageCoverage > 0
@@ -126,7 +147,8 @@ nonisolated enum SleepSnapshotBuilder {
             timeInBed: inBedDuration > 0 ? inBedDuration : nil,
             awakeDuration: awakeDuration > 0 ? awakeDuration : nil,
             detailedStageCoverage: detailedCoverage,
-            sampleCount: latest.count
+            sampleCount: latest.count,
+            stageIntervals: latest
         )
     }
 

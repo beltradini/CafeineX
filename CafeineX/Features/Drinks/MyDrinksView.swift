@@ -54,6 +54,8 @@ struct MyDrinksView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .cxContentBackground()
+        .cxRootScrollInsets()
         .navigationTitle("My Drinks")
         .searchable(text: $searchText, prompt: "Search drinks")
         .toolbar {

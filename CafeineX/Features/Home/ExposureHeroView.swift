@@ -4,7 +4,7 @@ struct ExposureHeroView: View {
     let status: CaffeineStatus
 
     var body: some View {
-        CXGlassCard {
+        CXSurfaceCard {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
@@ -37,14 +37,14 @@ struct ExposureHeroView: View {
                     columns: [GridItem(.adaptive(minimum: 145), spacing: 12)],
                     spacing: 12
                 ) {
-                    CXMetricCard(
+                    CXMetricTile(
                         title: "Active estimate",
                         value: "≈ \(Int(status.activeCaffeineMG.rounded())) mg",
                         symbol: "bolt.heart",
                         tint: CXTheme.caffeineAccent
                     )
 
-                    CXMetricCard(
+                    CXMetricTile(
                         title: "Suggested cutoff",
                         value: status.suggestedCutoffTime.formatted(
                             date: .omitted,

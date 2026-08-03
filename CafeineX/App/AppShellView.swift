@@ -62,6 +62,10 @@ struct AppShellView: View {
             QuickAddSheet(initialKind: quickAddCoordinator.initialKind) { request in
                 save(request)
             }
+            // Sheets are a separate presentation boundary. Keep the save-error
+            // coordinator explicit so QuickAddSheet can run its bootstrap task
+            // even when SwiftUI does not propagate the parent environment.
+            .environment(persistenceIssueCenter)
         }
         .preferredColorScheme(appearanceStore.selection.colorScheme)
         .alert(item: Binding(

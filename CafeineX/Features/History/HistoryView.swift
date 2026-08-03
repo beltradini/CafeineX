@@ -115,7 +115,8 @@ struct HistoryView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .contentMargins(.horizontal, CXTheme.horizontalPadding, for: .scrollContent)
-            .contentMargins(.bottom, 32, for: .scrollContent)
+            .contentMargins(.bottom, CXTheme.bottomContentInset, for: .scrollContent)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.large)
@@ -128,80 +129,147 @@ struct HistoryView: View {
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
-            prompt: "Search this history"
+            prompt: "Search history"
         )
     }
 
     private var summarySection: some View {
         Section {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 140), spacing: 12)],
-                spacing: 12
-            ) {
-                summaryCard(
-                    title: "Events",
-                    value: filteredItems.count.formatted(),
-                    symbol: "list.bullet",
-                    tint: CXTheme.healthAccent
-                )
-                summaryCard(
-                    title: "Caffeine",
-                    value: "\(Int(totalCaffeineMG.rounded())) mg",
-                    symbol: "cup.and.saucer.fill",
-                    tint: CXTheme.caffeineAccent
-                )
-                summaryCard(
-                    title: "Nicotine",
-                    value: totalNicotine.displayText,
-                    symbol: "waveform.path.ecg",
-                    tint: CXTheme.nicotineAccent
-                )
+            CXSurfaceCard {
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(spacing: 14) {
+                            summaryContent
+                        }
+                    } else {
+                        HStack(spacing: 0) {
+                            summaryContent
+                        }
+                    }
+                }
             }
             .padding(.vertical, 4)
+            .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         }
     }
 
+    @ViewBuilder
+    private var summaryContent: some View {
+        summaryMetric(
+                    title: "Events",
+                    value: filteredItems.count.formatted(),
+                    symbol: "list.bullet",
+                    tint: CXTheme.healthAccent
+                )
+
+        summaryDivider
+
+        summaryMetric(
+                    title: "Caffeine",
+                    value: "\(Int(totalCaffeineMG.rounded())) mg",
+                    symbol: "cup.and.saucer.fill",
+                    tint: CXTheme.caffeineAccent
+                )
+
+        summaryDivider
+
+        summaryMetric(
+                    title: "Nicotine",
+                    value: totalNicotine.displayText,
+                    symbol: "waveform.path.ecg",
+                    tint: CXTheme.nicotineAccent
+                )
+    }
+
+    @ViewBuilder
+    private var summaryDivider: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Divider()
+        } else {
+            Divider()
+                .frame(height: 58)
+                .padding(.horizontal, 12)
+        }
+    }
+
     private var filterSection: some View {
         Section("Filters") {
-            if dynamicTypeSize.isAccessibilitySize {
-                Picker("Substance", selection: $substanceFilter) {
-                    ForEach(SubstanceFilter.allCases) { filter in
-                        Text(filter.title)
-                            .tag(filter)
+            CXSurfaceCard(
+                contentPadding: EdgeInsets(top: 14, leading: 16, bottom: 8, trailing: 16)
+            ) {
+                VStack(spacing: 0) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        filterMenuRow(title: "Substance", value: substanceFilter.title) {
+                            Picker("Substance", selection: $substanceFilter) {
+                                ForEach(SubstanceFilter.allCases) { filter in
+                                    Text(filter.title).tag(filter)
+                                }
+                            }
+                        }
+                    } else {
+                        Picker("Substance", selection: $substanceFilter) {
+                            ForEach(SubstanceFilter.allCases) { filter in
+                                Text(filter.title).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityLabel("History substance")
+                    }
+
+                    Divider().padding(.top, 14)
+
+                    filterMenuRow(title: "Date range", value: dateRange.title) {
+                        Picker("Date range", selection: $dateRange) {
+                            ForEach(DateRange.allCases) { range in
+                                Text(range.title).tag(range)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    filterMenuRow(title: "Source", value: sourceFilter.title) {
+                        Picker("Source", selection: $sourceFilter) {
+                            ForEach(SourceFilter.allCases) { source in
+                                Text(source.title).tag(source)
+                            }
+                        }
                     }
                 }
-                .pickerStyle(.menu)
-            } else {
-                Picker("Substance", selection: $substanceFilter) {
-                    ForEach(SubstanceFilter.allCases) { filter in
-                        Text(filter.title)
-                            .tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityLabel("History substance")
             }
-
-            Picker("Date range", selection: $dateRange) {
-                ForEach(DateRange.allCases) { range in
-                    Text(range.title)
-                        .tag(range)
-                }
-            }
-
-            Picker("Source", selection: $sourceFilter) {
-                ForEach(SourceFilter.allCases) { source in
-                    Text(source.title)
-                        .tag(source)
-                }
-            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
-        .listRowBackground(
-            Rectangle()
-                .fill(.ultraThinMaterial)
-        )
+    }
+
+    private func filterMenuRow<MenuContent: View>(
+        title: String,
+        value: String,
+        @ViewBuilder content: () -> MenuContent
+    ) -> some View {
+        Menu(content: content) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(value)
+                    .foregroundStyle(.secondary)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(minHeight: 52)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(value)
     }
 
     private var emptySection: some View {
@@ -251,29 +319,26 @@ struct HistoryView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func summaryCard(
+    private func summaryMetric(
         title: String,
         value: String,
         symbol: String,
         tint: Color
     ) -> some View {
-        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
-            VStack(alignment: .leading, spacing: 7) {
-                Image(systemName: symbol)
-                    .foregroundStyle(tint)
-                    .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 7) {
+            Image(systemName: symbol)
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
 
-                Text(value)
-                    .font(.title3.bold())
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
+            Text(value)
+                .font(.title3.bold())
+                .fixedSize(horizontal: false, vertical: true)
 
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 

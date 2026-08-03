@@ -11,7 +11,7 @@ struct HomeTimelineView: View {
                 .font(.title2.bold())
 
             if items.isEmpty {
-                CXGlassCard {
+                CXSurfaceCard {
                     ContentUnavailableView {
                         Label("No exposure logged", systemImage: "clock")
                     } description: {
@@ -26,7 +26,7 @@ struct HomeTimelineView: View {
                     NavigationLink {
                         ExposureDetailView(item: item)
                     } label: {
-                        CXGlassCard(cornerRadius: CXTheme.smallCornerRadius) {
+                        CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
                             ExposureRow(item: item)
                         }
                     }

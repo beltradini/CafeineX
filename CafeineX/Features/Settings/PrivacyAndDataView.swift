@@ -121,6 +121,7 @@ struct PrivacyAndDataView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .cxContentBackground()
         .navigationTitle("Privacy & Data")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(

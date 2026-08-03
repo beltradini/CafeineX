@@ -68,6 +68,7 @@ struct ExposureEditorView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .cxContentBackground()
             .navigationTitle("Edit Event")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

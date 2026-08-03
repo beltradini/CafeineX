@@ -89,25 +89,32 @@ struct SearchView: View {
 
             List {
                 Section {
-                    if dynamicTypeSize.isAccessibilitySize {
-                        Picker("Search scope", selection: $scope) {
-                            ForEach(Scope.allCases) { scope in
-                                Text(scope.title)
-                                    .tag(scope)
+                    CXSurfaceCard(
+                        cornerRadius: CXTheme.smallCornerRadius,
+                        contentPadding: EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+                    ) {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            Picker("Search scope", selection: $scope) {
+                                ForEach(Scope.allCases) { scope in
+                                    Text(scope.title)
+                                        .tag(scope)
+                                }
                             }
-                        }
-                        .pickerStyle(.menu)
-                    } else {
-                        Picker("Search scope", selection: $scope) {
-                            ForEach(Scope.allCases) { scope in
-                                Text(scope.title)
-                                    .tag(scope)
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 10)
+                        } else {
+                            Picker("Search scope", selection: $scope) {
+                                ForEach(Scope.allCases) { scope in
+                                    Text(scope.title)
+                                        .tag(scope)
+                                }
                             }
+                            .pickerStyle(.segmented)
+                            .accessibilityLabel("Search scope")
                         }
-                        .pickerStyle(.segmented)
-                        .accessibilityLabel("Search scope")
                     }
                 }
+                .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
@@ -127,7 +134,8 @@ struct SearchView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .contentMargins(.horizontal, CXTheme.horizontalPadding, for: .scrollContent)
-            .contentMargins(.bottom, 32, for: .scrollContent)
+            .contentMargins(.bottom, CXTheme.bottomContentInset, for: .scrollContent)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
         .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.large)
@@ -157,9 +165,10 @@ struct SearchView: View {
     @ViewBuilder
     private var searchLanding: some View {
         Section("Shortcuts") {
-            ForEach(SettingsDestination.allCases) { destination in
-                settingsLink(destination)
-            }
+            settingsLinksCard(Array(SettingsDestination.allCases))
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
 
         Section("Recent Events") {
@@ -189,9 +198,10 @@ struct SearchView: View {
     private var resultSections: some View {
         if !settingsResults.isEmpty {
             Section("Settings") {
-                ForEach(settingsResults) { destination in
-                    settingsLink(destination)
-                }
+                settingsLinksCard(settingsResults)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
         }
 
@@ -215,6 +225,23 @@ struct SearchView: View {
     }
 
     @ViewBuilder
+    private func settingsLinksCard(_ destinations: [SettingsDestination]) -> some View {
+        CXSurfaceCard(contentPadding: EdgeInsets()) {
+            VStack(spacing: 0) {
+                ForEach(destinations) { destination in
+                    settingsLink(destination)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 13)
+
+                    if destination != destinations.last {
+                        Divider()
+                            .padding(.leading, 52)
+                    }
+                }
+            }
+        }
+    }
+
     private func settingsLink(_ destination: SettingsDestination) -> some View {
         NavigationLink {
             switch destination {
@@ -229,7 +256,13 @@ struct SearchView: View {
                 PrivacyAndDataView(viewModel: viewModel)
             }
         } label: {
-            Label {
+            HStack(spacing: 14) {
+                Image(systemName: destination.symbol)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(CXTheme.caffeineAccent)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text(destination.title)
                         .font(.headline)
@@ -237,11 +270,16 @@ struct SearchView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } icon: {
-                Image(systemName: destination.symbol)
-                    .foregroundStyle(CXTheme.caffeineAccent)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
         }
+        .buttonStyle(.plain)
     }
 
     private var allItems: [ExposureItem] {

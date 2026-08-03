@@ -108,6 +108,9 @@ struct MyCigarettesView: View {
                 .foregroundStyle(.secondary)
             }
         }
+        .listStyle(.insetGrouped)
+        .cxContentBackground()
+        .cxRootScrollInsets()
         .navigationTitle("My Cigarettes")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -213,6 +216,7 @@ private struct CigaretteProfileEditor: View {
                     Toggle("Favorite", isOn: $isFavorite)
                 }
             }
+            .cxContentBackground()
             .navigationTitle(profile == nil ? "New Cigarette" : "Edit Cigarette")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

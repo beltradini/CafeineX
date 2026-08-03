@@ -102,7 +102,8 @@ struct ProfileView: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .contentMargins(.bottom, 32, for: .scrollContent)
+            .cxRootScrollInsets()
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.large)

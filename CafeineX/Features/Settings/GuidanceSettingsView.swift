@@ -49,6 +49,7 @@ struct GuidanceSettingsView: View {
                     }
                 }
         }
+        .cxContentBackground()
         .navigationTitle("Personal Guidance")
         .navigationBarTitleDisplayMode(.inline)
     }
