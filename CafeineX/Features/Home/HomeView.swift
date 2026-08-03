@@ -48,6 +48,29 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: CXTheme.sectionSpacing) {
                     header
 
+                    if allItems.isEmpty {
+                        HomeEmptyStateCard(
+                            healthState: viewModel.healthAccessState,
+                            startCaffeine: { quickAddCoordinator.present(.caffeine) },
+                            startNicotine: { quickAddCoordinator.present(.nicotine) },
+                            connectHealth: {
+                                Task {
+                                    if viewModel.healthAccessState == .notRequested {
+                                        await viewModel.requestHealthAccess(context: modelContext)
+                                    } else {
+                                        await viewModel.synchronizeHealthKit(context: modelContext)
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        HomeQuickAddView(
+                            favoriteDrinks: favoriteDrinks,
+                            addDrink: addFavorite,
+                            openQuickAdd: quickAddCoordinator.present
+                        )
+                    }
+
                     if let status = viewModel.status {
                         ExposureHeroView(status: status)
                     }
@@ -55,12 +78,6 @@ struct HomeView: View {
                     if let context = viewModel.dailyExposureContext {
                         DailyExposureCard(context: context)
                     }
-
-                    CigaretteIntelligenceCard(
-                        summary: cigaretteSummary,
-                        goal: cigarettePreference?.goal ?? .awareness,
-                        addCigarette: addOneCigarette
-                    )
 
                     HealthInsightsCard(
                         state: viewModel.sleepDataState,
@@ -79,45 +96,39 @@ struct HomeView: View {
                         }
                     )
 
+                    if !allItems.isEmpty {
+                        HomeTimelineView(
+                            items: Array(allItems.prefix(CaffeineHistoryPolicy.dashboardEntryLimit)),
+                            openQuickAdd: { quickAddCoordinator.present() },
+                            repeatItem: repeatItem
+                        )
+                    }
+
+                    CigaretteIntelligenceCard(
+                        summary: cigaretteSummary,
+                        goal: cigarettePreference?.goal ?? .awareness,
+                        addCigarette: addOneCigarette
+                    )
+
                     HomeStreakCard(
                         summary: streakSummary,
                         reviewToday: reviewToday
                     )
 
-                    HomeQuickAddView(
-                        favoriteDrinks: favoriteDrinks,
-                        addDrink: addFavorite,
-                        openQuickAdd: quickAddCoordinator.present
-                    )
-
-                    HomeTimelineView(
-                        items: Array(allItems.prefix(CaffeineHistoryPolicy.dashboardEntryLimit)),
-                        openQuickAdd: { quickAddCoordinator.present() },
-                        repeatItem: repeatItem
-                    )
-
-                    if viewModel.healthAccessState != .writeEnabled {
-                        HealthConnectionCard(
-                            state: viewModel.healthAccessState,
-                            isSyncing: viewModel.isSyncingHealth
-                        ) {
-                            Task {
-                                if viewModel.healthAccessState == .notRequested {
-                                    await viewModel.requestHealthAccess(context: modelContext)
-                                } else {
-                                    await viewModel.synchronizeHealthKit(context: modelContext)
-                                }
+                    HealthConnectionCard(
+                        state: viewModel.healthAccessState,
+                        isSyncing: viewModel.isSyncingHealth,
+                        lastSyncDate: viewModel.lastHealthSyncDate,
+                        message: viewModel.healthMessage,
+                        sleepState: viewModel.sleepDataState
+                    ) {
+                        Task {
+                            if viewModel.healthAccessState == .notRequested {
+                                await viewModel.requestHealthAccess(context: modelContext)
+                            } else {
+                                await viewModel.synchronizeHealthKit(context: modelContext)
                             }
                         }
-                    }
-
-                    if let message = viewModel.healthMessage {
-                        Label(message, systemImage: "info.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
-                            .accessibilityIdentifier("health-status-message")
                     }
                 }
                 .frame(maxWidth: CXTheme.screenMaxWidth)
@@ -387,6 +398,68 @@ struct HomeView: View {
             sleepSchedule: sleepScheduleStore.schedule,
             sensitivity: sensitivityStore.profile
         )
+    }
+}
+
+private struct HomeEmptyStateCard: View {
+    let healthState: HomeViewModel.HealthAccessState
+    let startCaffeine: () -> Void
+    let startNicotine: () -> Void
+    let connectHealth: () -> Void
+
+    var body: some View {
+        CXSurfaceCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(CXTheme.healthAccent)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Start with one moment")
+                            .font(.headline)
+                        Text("Your first entry takes less than 10 seconds.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button(action: startCaffeine) {
+                        Label("Log caffeine", systemImage: "cup.and.saucer.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(CXTheme.caffeineAccent)
+                    .accessibilityIdentifier("empty-state-log-caffeine-button")
+
+                    Button(action: startNicotine) {
+                        Label("Log nicotine", systemImage: "smoke.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(CXTheme.nicotineAccent)
+                    .accessibilityIdentifier("empty-state-log-nicotine-button")
+                }
+
+                if healthState != .unavailable {
+                    Button(action: connectHealth) {
+                        Label(
+                            healthState == .notRequested
+                                ? "Connect Apple Health"
+                                : "Sync Apple Health",
+                            systemImage: "heart.fill"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(CXTheme.healthAccent)
+                    .accessibilityIdentifier("empty-state-connect-health-button")
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home-empty-state-card")
     }
 }
 

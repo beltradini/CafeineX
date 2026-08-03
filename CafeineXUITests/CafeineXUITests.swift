@@ -94,6 +94,55 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testWelcomeOnboardingCanBeCompleted() throws {
+        let app = makeApp()
+        app.launchArguments.append("-show-onboarding")
+        app.launchArguments.append("-show-whats-new")
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Understand the timing of your stimulants"].waitForExistence(timeout: 8))
+
+        for _ in 0..<4 {
+            app.buttons["onboarding-primary-action"].tap()
+        }
+
+        XCTAssertTrue(app.staticTexts["Your next moment starts here"].waitForExistence(timeout: 3))
+        app.buttons["onboarding-primary-action"].tap()
+        XCTAssertTrue(app.staticTexts["A clearer way to notice your day"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Sleep stages timeline"].exists)
+        XCTAssertTrue(app.staticTexts["Quick Add"].exists)
+        XCTAssertTrue(app.staticTexts["Cigarette intelligence"].exists)
+        XCTAssertTrue(app.staticTexts["Local privacy"].exists)
+        XCTAssertTrue(app.staticTexts["Apple Health integration"].exists)
+        app.buttons["whats-new-continue-button"].tap()
+        XCTAssertTrue(navigationButton(named: "Home", in: app).waitForExistence(timeout: 8))
+    }
+
+    @MainActor
+    func testWhatsNewTourShowsPilotFeatures() throws {
+        let app = makeApp()
+        app.launchArguments.append("-show-whats-new")
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["whats-new-screen"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["whats-new-continue-button"].exists)
+    }
+
+    @MainActor
+    func testEmptyHomeOffersFirstEntryActions() throws {
+        let app = makeApp()
+        app.launch()
+
+        let emptyState = app.descendants(matching: .any)["home-empty-state-card"].firstMatch
+        XCTAssertTrue(emptyState.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["empty-state-log-caffeine-button"].exists)
+        XCTAssertTrue(app.buttons["empty-state-log-nicotine-button"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["health-connection-card"].exists)
+        XCTAssertTrue(app.staticTexts["Saved on this device"].exists)
+        XCTAssertTrue(app.staticTexts["Health & sync status"].exists)
+    }
+
+    @MainActor
     func testCigaretteIntelligenceLogsAndUndoesOneEvent() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = makeApp()

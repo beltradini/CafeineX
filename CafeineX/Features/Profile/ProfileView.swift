@@ -19,6 +19,8 @@ struct ProfileView: View {
 
     @Bindable var viewModel: HomeViewModel
     @State private var editingProfile: UserProfile?
+    @State private var isShowingWelcome = false
+    @State private var isShowingWhatsNew = false
 
     private let streakEngine = StreakEngine()
 
@@ -98,6 +100,28 @@ struct ProfileView: View {
                     LabeledContent("App", value: "CafeineX")
                     LabeledContent("Data model", value: "SwiftData V5")
                     LabeledContent("Purpose", value: "Mindful exposure guidance")
+
+                    Button {
+                        isShowingWelcome = true
+                    } label: {
+                        settingsRow(
+                            title: "Review Welcome",
+                            subtitle: "Revisit how CafeineX works",
+                            symbol: "sparkles",
+                            tint: CXTheme.healthAccent
+                        )
+                    }
+
+                    Button {
+                        isShowingWhatsNew = true
+                    } label: {
+                        settingsRow(
+                            title: "What's New",
+                            subtitle: "Review the CafeineX pilot features",
+                            symbol: "sparkles",
+                            tint: CXTheme.caffeineAccent
+                        )
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -119,6 +143,16 @@ struct ProfileView: View {
         }
         .sheet(item: $editingProfile) { profile in
             EditProfileView(profile: profile)
+        }
+        .sheet(isPresented: $isShowingWelcome) {
+            OnboardingView {
+                isShowingWelcome = false
+            }
+        }
+        .sheet(isPresented: $isShowingWhatsNew) {
+            WhatsNewView {
+                isShowingWhatsNew = false
+            }
         }
         .task {
             ensureProfileExists()

@@ -12,15 +12,18 @@ struct CafeineXDataDeletionService {
     private let healthKitService: any HealthKitProviding
     private let fileManager: FileManager
     private let recoveryRootURL: URL
+    private let defaults: UserDefaults
 
     init(
         healthKitService: any HealthKitProviding,
         fileManager: FileManager = .default,
-        recoveryRootURL: URL = CafeineXStoreFactory.recoveryRootURL()
+        recoveryRootURL: URL = CafeineXStoreFactory.recoveryRootURL(),
+        defaults: UserDefaults = .standard
     ) {
         self.healthKitService = healthKitService
         self.fileManager = fileManager
         self.recoveryRootURL = recoveryRootURL
+        self.defaults = defaults
     }
 
     func deleteAllData(
@@ -78,6 +81,8 @@ struct CafeineXDataDeletionService {
         sleepScheduleStore.clearPersistedData()
         sensitivityStore.clearPersistedData()
         appearanceStore.clearPersistedData()
+        defaults.removeObject(forKey: CafeineXOnboarding.completionKey)
+        defaults.removeObject(forKey: CafeineXWhatsNew.completionKey)
 
         return CafeineXDataDeletionResult(
             localRecordCount: localRecordCount,

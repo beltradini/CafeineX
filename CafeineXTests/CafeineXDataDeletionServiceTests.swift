@@ -71,8 +71,11 @@ struct CafeineXDataDeletionServiceTests {
         let healthKit = DataDeletionHealthKitMock()
         let service = CafeineXDataDeletionService(
             healthKitService: healthKit,
-            recoveryRootURL: recoveryRoot
+            recoveryRootURL: recoveryRoot,
+            defaults: defaults
         )
+        defaults.set(true, forKey: CafeineXOnboarding.completionKey)
+        defaults.set(true, forKey: CafeineXWhatsNew.completionKey)
         let result = try await service.deleteAllData(
             from: context,
             sleepScheduleStore: sleepStore,
@@ -93,6 +96,8 @@ struct CafeineXDataDeletionServiceTests {
         #expect(defaults.object(forKey: "sleep.cutoffHoursBeforeBedtime") == nil)
         #expect(defaults.object(forKey: "caffeine.sensitivityProfile") == nil)
         #expect(defaults.object(forKey: "appearance.selection") == nil)
+        #expect(defaults.object(forKey: CafeineXOnboarding.completionKey) == nil)
+        #expect(defaults.object(forKey: CafeineXWhatsNew.completionKey) == nil)
 
         #expect(try context.fetchCount(FetchDescriptor<CaffeineEntry>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<NicotineEntry>()) == 0)

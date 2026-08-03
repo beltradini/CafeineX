@@ -2,12 +2,15 @@ import Charts
 import SwiftUI
 
 struct HealthInsightsCard: View {
+    @Environment(\.openURL) private var openURL
+
     let state: HomeViewModel.SleepDataState
     let summary: HealthInsightsSummary?
     let message: String?
     let isLoading: Bool
     let connect: () -> Void
     let refresh: () -> Void
+    @State private var isShowingDetails = false
 
     var body: some View {
         CXSurfaceCard {
@@ -67,12 +70,14 @@ struct HealthInsightsCard: View {
                 text: "This can mean there are no completed sleep samples in the last 14 days, access is limited, or read access was not granted. HealthKit does not reveal which applies.",
                 symbol: "questionmark.circle"
             )
+            sleepRecoveryActions
         case .failed:
             stateMessage(
                 title: "Sleep context unavailable",
                 text: message ?? "CafeineX could not read recent sleep data.",
                 symbol: "exclamationmark.triangle"
             )
+            sleepRecoveryActions
         case .available:
             if let summary {
                 availableContent(summary)
@@ -86,21 +91,77 @@ struct HealthInsightsCard: View {
 
             SleepStageTimelineView(snapshot: summary.snapshot)
 
-            sleepMetrics(summary.snapshot)
+            if isShowingDetails {
+                sleepMetrics(summary.snapshot)
+                insightList(summary.insights.filter { $0.id != "latest-sleep" })
 
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(summary.insights.filter { $0.id != "latest-sleep" }) { insight in
-                    insightRow(insight)
-                    if insight.id != summary.insights.filter({ $0.id != "latest-sleep" }).last?.id {
-                        Divider()
+                Button("Hide sleep details") {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isShowingDetails = false
                     }
                 }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(CXTheme.healthAccent)
+            } else {
+                let visibleInsights = Array(
+                    summary.insights.filter { $0.id != "latest-sleep" }.prefix(2)
+                )
+                if !visibleInsights.isEmpty {
+                    insightList(visibleInsights)
+                }
+
+                Button("View sleep details") {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isShowingDetails = true
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(CXTheme.healthAccent)
+                .accessibilityIdentifier("view-sleep-details-button")
             }
 
             Text(HealthInsightsSummary.limitationText)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func insightList(_ insights: [HealthInsight]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(insights) { insight in
+                insightRow(insight)
+                if insight.id != insights.last?.id {
+                    Divider()
+                }
+            }
+        }
+    }
+
+    private var sleepRecoveryActions: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Button("Review Permissions", action: connect)
+                    .buttonStyle(.borderedProminent)
+                    .tint(CXTheme.healthAccent)
+                    .accessibilityIdentifier("review-sleep-permissions-button")
+
+                Button("Try Again", action: refresh)
+                    .buttonStyle(.bordered)
+                    .disabled(isLoading)
+                    .accessibilityIdentifier("retry-sleep-button")
+            }
+
+            Button {
+                if let url = URL(string: "x-apple-health://") {
+                    openURL(url)
+                }
+            } label: {
+                Label("Open Apple Health", systemImage: "arrow.up.right.square")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(CXTheme.healthAccent)
+            .accessibilityIdentifier("open-apple-health-button")
         }
     }
 
