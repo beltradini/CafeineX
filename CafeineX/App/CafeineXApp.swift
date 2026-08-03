@@ -10,7 +10,9 @@ import SwiftUI
 
 @main
 struct CafeineXApp: App {
-    @State private var persistenceController = CafeineXPersistenceController()
+    @State private var persistenceController = CafeineXPersistenceController(
+        useInMemoryStore: ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    )
     @State private var persistenceIssueCenter = PersistenceIssueCenter()
     @State private var sleepScheduleStore = SleepScheduleStore()
     @State private var sensitivityStore = CaffeineSensitivityStore()

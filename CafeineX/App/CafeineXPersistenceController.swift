@@ -17,8 +17,10 @@ final class CafeineXPersistenceController {
     }
 
     private(set) var state: State = .loading
+    private let useInMemoryStore: Bool
 
-    init() {
+    init(useInMemoryStore: Bool = false) {
+        self.useInMemoryStore = useInMemoryStore
         open()
     }
 
@@ -52,7 +54,11 @@ final class CafeineXPersistenceController {
     private func open() {
         state = .loading
         do {
-            let container = try CafeineXStoreFactory.makePersistentContainer()
+            let container = if useInMemoryStore {
+                try CafeineXStoreFactory.makeInMemoryContainer()
+            } else {
+                try CafeineXStoreFactory.makePersistentContainer()
+            }
             try prepare(container)
             state = .ready(container)
         } catch {

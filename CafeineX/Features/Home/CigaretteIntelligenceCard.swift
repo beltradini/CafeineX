@@ -40,10 +40,10 @@ struct CigaretteIntelligenceCard: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(CXTheme.nicotineAccent)
+                .accessibilityIdentifier("cigarette-log-one-button")
                 .accessibilityHint("Logs one cigarette now and offers Undo")
             }
         }
-        .accessibilityIdentifier("cigarette-intelligence-card")
     }
 
     private var sinceLastText: String {

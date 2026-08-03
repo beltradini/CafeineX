@@ -221,6 +221,7 @@ struct ProfileView: View {
                     tint: CXTheme.caffeineAccent
                 )
             }
+            .accessibilityIdentifier("profile-my-drinks-link")
 
             NavigationLink {
                 MyCigarettesView()

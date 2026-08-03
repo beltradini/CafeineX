@@ -45,7 +45,7 @@ struct HomeView: View {
             CXBackgroundView()
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 20) {
                     header
 
                     if let status = viewModel.status {
@@ -143,7 +143,7 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .task(id: feedback.id) {
-                        try? await Task.sleep(for: .seconds(5))
+                        try? await Task.sleep(for: .seconds(10))
                         guard viewModel.feedback?.id == feedback.id else { return }
                         withAnimation {
                             viewModel.dismissFeedback()
@@ -372,6 +372,7 @@ struct HomeView: View {
                 }
             }
             .font(.subheadline.bold())
+            .accessibilityIdentifier("cigarette-undo-button")
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)

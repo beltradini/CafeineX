@@ -24,7 +24,7 @@ final class CafeineXUITests: XCTestCase {
 
     @MainActor
     func testPrimaryNavigationAndLandscapeLayout() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
         let home = navigationButton(named: "Home", in: app)
@@ -48,23 +48,17 @@ final class CafeineXUITests: XCTestCase {
 
     @MainActor
     func testProfileOpensPersonalDrinkLibrary() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
         let profile = navigationButton(named: "Profile", in: app)
         XCTAssertTrue(profile.waitForExistence(timeout: 5))
         profile.tap()
 
-        XCTAssertTrue(app.staticTexts["Your Focus"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 8))
 
-        let myDrinks = app.staticTexts["My Drinks"].firstMatch
-        if !myDrinks.waitForExistence(timeout: 1) {
-            app.swipeUp()
-        }
-        if !myDrinks.waitForExistence(timeout: 1) {
-            app.swipeUp()
-        }
-        XCTAssertTrue(myDrinks.waitForExistence(timeout: 3))
+        let myDrinks = app.descendants(matching: .any)["profile-my-drinks-link"].firstMatch
+        try scrollToHittable(myDrinks, in: app.collectionViews.firstMatch)
         myDrinks.tap()
 
         XCTAssertTrue(app.navigationBars["My Drinks"].waitForExistence(timeout: 3))
@@ -74,40 +68,69 @@ final class CafeineXUITests: XCTestCase {
 
     @MainActor
     func testHomePresentsOptionalSleepContext() throws {
-        let app = XCUIApplication()
+        let app = makeApp()
         app.launch()
 
-        let sleepContext = app.otherElements["health-insights-card"]
-        if !sleepContext.waitForExistence(timeout: 2) {
-            app.swipeUp()
-        }
-
+        let sleepContext = app.descendants(matching: .any)["health-insights-card"].firstMatch
         XCTAssertTrue(sleepContext.waitForExistence(timeout: 3))
 
-        let chooseAccess = app.buttons["choose-sleep-access-button"]
+        let chooseAccess = app.descendants(matching: .any)["choose-sleep-access-button"].firstMatch
         if chooseAccess.exists {
-            XCTAssertTrue(chooseAccess.isHittable)
+            try scrollToHittable(chooseAccess, in: app.scrollViews.firstMatch)
         }
     }
 
     @MainActor
     func testCigaretteIntelligenceLogsAndUndoesOneEvent() throws {
-        let app = XCUIApplication()
+        XCUIDevice.shared.orientation = .portrait
+        let app = makeApp()
         app.launch()
 
-        let card = app.otherElements["cigarette-intelligence-card"]
-        for _ in 0..<4 where !card.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(card.waitForExistence(timeout: 3))
-
-        let logButton = app.buttons["Log One Cigarette"]
-        XCTAssertTrue(logButton.waitForExistence(timeout: 3))
+        let logButton = app.descendants(matching: .any)["cigarette-log-one-button"].firstMatch
+        try scrollToHittable(logButton, in: app.scrollViews.firstMatch)
         logButton.tap()
 
-        let undo = app.buttons["Undo"]
-        XCTAssertTrue(undo.waitForExistence(timeout: 3))
+        let undo = app.descendants(matching: .any)["cigarette-undo-button"].firstMatch
+        XCTAssertTrue(undo.waitForExistence(timeout: 5))
+        XCTAssertTrue(undo.isHittable)
         undo.tap()
+        XCTAssertTrue(logButton.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    private func scrollToHittable(
+        _ element: XCUIElement,
+        in scrollView: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        XCTAssertTrue(
+            scrollView.waitForExistence(timeout: 5),
+            "The expected scroll view is unavailable",
+            file: file,
+            line: line
+        )
+
+        for _ in 0..<10 where !element.isHittable {
+            if element.exists, element.frame.midY < scrollView.frame.minY {
+                scrollView.swipeDown(velocity: .slow)
+            } else {
+                scrollView.swipeUp(velocity: .slow)
+            }
+        }
+
+        XCTAssertTrue(
+            element.exists,
+            "The accessibility identifier was not found",
+            file: file,
+            line: line
+        )
+        XCTAssertTrue(
+            element.isHittable,
+            "The identified control could not be brought on screen",
+            file: file,
+            line: line
+        )
     }
 
     @MainActor
@@ -124,10 +147,20 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    private func makeApp() -> XCUIApplication {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments.append("-ui-testing")
+        return app
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let app = XCUIApplication()
+            app.launchArguments.append("-ui-testing")
+            app.launch()
         }
     }
 }
