@@ -58,4 +58,9 @@ final class AppearanceStore {
     func reset() {
         setSelection(.system)
     }
+
+    func clearPersistedData() {
+        defaults.removeObject(forKey: Self.appearanceKey)
+        selection = .system
+    }
 }

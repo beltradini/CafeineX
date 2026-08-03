@@ -65,6 +65,38 @@ For a future archive:
 5. Confirm that the report and every bundled privacy manifest match the current
    data flow and App Store Connect privacy answers.
 
+## Public privacy policy
+
+- Production URL: <https://cafeinex.com/privacy>
+- In-app location: **Profile → Privacy & Data → Policy & Support**.
+- Pilot contact: **Send Beta Feedback** in TestFlight; privacy requests begin
+  with `PRIVACY`.
+
+Use the production URL above for the **Privacy Policy URL** field in App Store
+Connect. Revalidate the published text whenever the data flow changes or before
+submitting a new build that adds accounts, synchronization, analytics, third-
+party SDKs, or additional HealthKit data types.
+
+## In-app data deletion
+
+**Profile → Privacy & Data → Delete CafeineX Data** removes all CafeineX event,
+library, profile, preference, recovery-backup, and local synchronization data.
+Pending HealthKit writes are cancelled before deletion so an event cannot be
+recreated after the user confirms the request.
+
+Apple Health is handled as a separate, opt-in choice that is off by default:
+
+- Local deletion never deletes caffeine imported from Apple Health.
+- Sleep samples are read-only and are never deleted.
+- When the user enables the Apple Health deletion option, CafeineX targets only
+  linked dietary-caffeine UUIDs belonging to non-imported CafeineX entries.
+- If Apple Health does not confirm that optional deletion, CafeineX reports the
+  failure instead of presenting the operation as complete.
+
+JSON or CSV export remains deferred for the first pilot. Add export before
+deletion in a later release without weakening the deletion gate or broadening
+the HealthKit scope.
+
 ## Apple references
 
 - [Privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)

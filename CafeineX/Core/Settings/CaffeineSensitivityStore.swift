@@ -25,5 +25,9 @@ final class CaffeineSensitivityStore {
     func reset() {
         setProfile(.typical)
     }
-}
 
+    func clearPersistedData() {
+        defaults.removeObject(forKey: Self.profileKey)
+        profile = .typical
+    }
+}

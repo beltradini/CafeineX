@@ -8,6 +8,11 @@ enum CafeineXStoreFactory {
         URL.applicationSupportDirectory.appending(path: "default.store")
     }
 
+    static func recoveryRootURL(for storeURL: URL = defaultStoreURL) -> URL {
+        storeURL.deletingLastPathComponent()
+            .appending(path: "CafeineX Store Recovery", directoryHint: .isDirectory)
+    }
+
     static func makePersistentContainer(
         storeURL: URL = defaultStoreURL,
         fileManager: FileManager = .default
@@ -208,8 +213,7 @@ enum LegacyV3StoreRecovery {
         initialError: Error,
         fileManager: FileManager
     ) throws -> URL {
-        let recoveryRoot = storeURL.deletingLastPathComponent()
-            .appending(path: "CafeineX Store Recovery", directoryHint: .isDirectory)
+        let recoveryRoot = CafeineXStoreFactory.recoveryRootURL(for: storeURL)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         let directoryName = formatter.string(from: .now)

@@ -25,6 +25,7 @@ protocol HealthKitProviding: AnyObject {
     ) async throws -> HealthCaffeineSample
     func fetchCaffeineSamples(from startDate: Date, to endDate: Date) async throws -> [HealthCaffeineSample]
     func fetchSleepSamples(from startDate: Date, to endDate: Date) async throws -> [HealthSleepSample]
+    func deleteCaffeineSamples(ids: Set<UUID>) async throws -> Int
 }
 
 @MainActor
@@ -233,6 +234,35 @@ final class HealthKitService: HealthKitProviding {
                 startDate: sample.startDate,
                 endDate: sample.endDate
             )
+        }
+    }
+
+    func deleteCaffeineSamples(ids: Set<UUID>) async throws -> Int {
+        guard !ids.isEmpty else { return 0 }
+        guard isHealthKitAvailable else {
+            throw HealthKitError.healthDataUnavailable
+        }
+        guard let caffeineType else {
+            throw HealthKitError.caffeineNotAvailable
+        }
+
+        let predicate = HKQuery.predicateForObjects(with: ids)
+        return try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<Int, Error>) in
+            healthStore.deleteObjects(
+                of: caffeineType,
+                predicate: predicate
+            ) { success, deletedObjectCount, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume(returning: deletedObjectCount)
+                } else {
+                    continuation.resume(
+                        throwing: HealthKitError.caffeineDeletionFailed
+                    )
+                }
+            }
         }
     }
 

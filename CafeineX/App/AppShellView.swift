@@ -42,7 +42,7 @@ struct AppShellView: View {
 
             Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
                 NavigationStack {
-                    SearchView()
+                    SearchView(viewModel: homeViewModel)
                 }
             }
         }

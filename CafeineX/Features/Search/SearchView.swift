@@ -2,6 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct SearchView: View {
+    @Bindable var viewModel: HomeViewModel
+
     private enum Scope: String, CaseIterable, Identifiable {
         case all
         case caffeine
@@ -224,7 +226,7 @@ struct SearchView: View {
             case .appearance:
                 AppearanceSettingsView()
             case .privacy:
-                PrivacyAndDataView()
+                PrivacyAndDataView(viewModel: viewModel)
             }
         } label: {
             Label {
@@ -281,7 +283,7 @@ struct SearchView: View {
 
 #Preview {
     NavigationStack {
-        SearchView()
+        SearchView(viewModel: HomeViewModel())
     }
     .environment(QuickAddCoordinator())
     .environment(SleepScheduleStore())

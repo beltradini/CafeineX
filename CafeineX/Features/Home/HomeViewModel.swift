@@ -316,6 +316,32 @@ final class HomeViewModel {
         feedback = nil
     }
 
+    func cancelPendingOperationsForDataDeletion() {
+        for task in pendingHealthWrites.values {
+            task.cancel()
+        }
+        pendingHealthWrites.removeAll()
+        pendingDrinkUsage.removeAll()
+        pendingOutboxItems.removeAll()
+    }
+
+    func resetAfterDataDeletion() {
+        cancelPendingOperationsForDataDeletion()
+        entries = []
+        nicotineEntries = []
+        status = nil
+        nicotineStatus = nil
+        dailyExposureContext = nil
+        healthMessage = nil
+        isSyncingHealth = false
+        lastHealthSyncDate = nil
+        sleepSnapshot = nil
+        healthInsightsSummary = nil
+        sleepDataMessage = nil
+        isLoadingSleep = false
+        feedback = nil
+    }
+
     @discardableResult
     func addNicotine(
         product: NicotineProduct,

@@ -179,4 +179,8 @@ private final class MockHealthKitService: HealthKitProviding {
     ) async throws -> [HealthSleepSample] {
         []
     }
+
+    func deleteCaffeineSamples(ids: Set<UUID>) async throws -> Int {
+        ids.count
+    }
 }

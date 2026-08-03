@@ -82,7 +82,7 @@ struct ProfileView: View {
 
                 Section("Data") {
                     NavigationLink {
-                        PrivacyAndDataView()
+                        PrivacyAndDataView(viewModel: viewModel)
                     } label: {
                         settingsRow(
                             title: "Privacy & Data",

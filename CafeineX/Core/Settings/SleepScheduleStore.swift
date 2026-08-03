@@ -47,6 +47,13 @@ final class SleepScheduleStore {
         apply(.default)
     }
 
+    func clearPersistedData() {
+        defaults.removeObject(forKey: Key.bedtimeHour)
+        defaults.removeObject(forKey: Key.bedtimeMinute)
+        defaults.removeObject(forKey: Key.cutoffHoursBeforeBedtime)
+        schedule = .default
+    }
+
     func bedtimeDate(
         relativeTo date: Date = .now,
         calendar: Calendar = .current
@@ -78,4 +85,3 @@ final class SleepScheduleStore {
         )
     }
 }
-
