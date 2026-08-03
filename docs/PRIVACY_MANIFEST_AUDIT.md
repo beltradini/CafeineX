@@ -46,7 +46,9 @@ manifest declaring no collected-data categories and no tracking domains. The
 required-reason API declaration remains visible in `PrivacyInfo.xcprivacy` and
 is not rendered as a collected-data category in this report.
 
-Report: `output/pdf/CafeineX-PrivacyReport-2026-08-01.pdf`
+The generated PDF was reviewed and then moved out of the application source
+repository with the other release artifacts. It contains a blank page because
+there are no collected-data categories or tracking domains to render.
 
 ## Revalidation gate
 
@@ -68,4 +70,3 @@ For a future archive:
 - [Privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)
 - [Describing use of required-reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
 - [Required-reason API submission requirement](https://developer.apple.com/news/upcoming-requirements/?id=05012024a)
-

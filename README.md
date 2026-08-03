@@ -24,5 +24,12 @@ The helper keeps DerivedData in `/tmp/CafeineXDerivedData`, disables signing for
 - `CafeineX/Shared`: reusable visual system.
 - `CafeineXTests`: deterministic engine and HealthKit reconciliation tests.
 - `docs`: architecture, workflow, and phase boundaries.
+- `Scripts`: reproducible local build, test, and analysis entry points.
 
-See [architecture and workflow](docs/ARCHITECTURE_AND_WORKFLOW.md) and [phase 0–1 scope](docs/PHASE_0_1_FOUNDATION.md).
+Branding, marketing campaigns, and the public website are maintained in the
+separate `CafeineX Brand` companion workspace. They are not application build
+inputs and are intentionally kept outside this source repository.
+
+See [repository structure](docs/REPOSITORY_STRUCTURE.md),
+[architecture and workflow](docs/ARCHITECTURE_AND_WORKFLOW.md), and
+[phase 0–1 scope](docs/PHASE_0_1_FOUNDATION.md).
