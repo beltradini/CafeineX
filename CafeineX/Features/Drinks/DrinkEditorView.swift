@@ -5,6 +5,7 @@ import UIKit
 struct DrinkEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
     @Query private var allDetails: [DrinkDetails]
 
     let drink: Drink?
@@ -146,12 +147,19 @@ struct DrinkEditorView: View {
                 context: modelContext
             )
             update(persistedDetails)
-            DrinkLibrary.setFavorite(
-                isArchived ? false : isFavorite,
-                for: drink,
-                detailsValues: allDetails + [persistedDetails],
-                context: modelContext
-            )
+            do {
+                try DrinkLibrary.setFavorite(
+                    isArchived ? false : isFavorite,
+                    for: drink,
+                    detailsValues: allDetails + [persistedDetails],
+                    context: modelContext
+                )
+            } catch {
+                persistenceIssues.report("Saving the drink profile", error: error) {
+                    try modelContext.save()
+                }
+                return
+            }
         } else {
             let createdDrink = Drink(
                 name: normalizedName,
@@ -171,8 +179,11 @@ struct DrinkEditorView: View {
             modelContext.insert(createdDetails)
         }
 
-        try? modelContext.save()
-        dismiss()
+        if persistenceIssues.attempt("Saving the drink profile", action: {
+            try modelContext.save()
+        }) {
+            dismiss()
+        }
     }
 
     private func update(_ details: DrinkDetails) {

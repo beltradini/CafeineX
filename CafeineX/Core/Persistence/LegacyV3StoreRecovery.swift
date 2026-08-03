@@ -17,6 +17,76 @@ enum CafeineXStoreFactory {
         storeURL: URL = defaultStoreURL,
         fileManager: FileManager = .default
     ) throws -> ModelContainer {
+        do {
+            return try makeCurrentContainer(at: storeURL)
+        } catch {
+            return try LegacyV3StoreRecovery.recover(
+                storeURL: storeURL,
+                initialError: error,
+                fileManager: fileManager
+            )
+        }
+    }
+
+    static func makeFreshContainerPreservingUnreadableStore(
+        storeURL: URL = defaultStoreURL,
+        originalErrorDescription: String,
+        fileManager: FileManager = .default
+    ) throws -> ModelContainer {
+        let existingFiles = storeFileURLs(for: storeURL).filter {
+            fileManager.fileExists(atPath: $0.path)
+        }
+        guard !existingFiles.isEmpty else {
+            return try makeCurrentContainer(at: storeURL)
+        }
+
+        let recoveryRoot = recoveryRootURL(for: storeURL)
+        let directoryName = "manual-recovery-\(ISO8601DateFormatter().string(from: .now).replacingOccurrences(of: ":", with: "-"))-\(UUID().uuidString.prefix(8))"
+        let backupDirectory = recoveryRoot.appending(
+            path: directoryName,
+            directoryHint: .isDirectory
+        )
+        try fileManager.createDirectory(
+            at: backupDirectory,
+            withIntermediateDirectories: true
+        )
+
+        do {
+            for source in existingFiles {
+                try fileManager.copyItem(
+                    at: source,
+                    to: backupDirectory.appending(path: source.lastPathComponent)
+                )
+            }
+            try Data(originalErrorDescription.utf8).write(
+                to: backupDirectory.appending(path: "storage-error.txt"),
+                options: .atomic
+            )
+        } catch {
+            try? fileManager.removeItem(at: backupDirectory)
+            throw error
+        }
+
+        do {
+            for url in existingFiles {
+                try fileManager.removeItem(at: url)
+            }
+            return try makeCurrentContainer(at: storeURL)
+        } catch {
+            for url in storeFileURLs(for: storeURL) where fileManager.fileExists(atPath: url.path) {
+                try? fileManager.removeItem(at: url)
+            }
+            for original in existingFiles {
+                let backup = backupDirectory.appending(path: original.lastPathComponent)
+                if fileManager.fileExists(atPath: backup.path) {
+                    try? fileManager.copyItem(at: backup, to: original)
+                }
+            }
+            throw error
+        }
+    }
+
+    private static func makeCurrentContainer(at storeURL: URL) throws -> ModelContainer {
         let schema = Schema(versionedSchema: CafeineXSchemaV5.self)
         let configuration = ModelConfiguration(
             schema: schema,
@@ -24,18 +94,16 @@ enum CafeineXStoreFactory {
             cloudKitDatabase: .none
         )
 
-        do {
-            return try ModelContainer(
-                for: schema,
-                migrationPlan: CafeineXMigrationPlan.self,
-                configurations: [configuration]
-            )
-        } catch {
-            return try LegacyV3StoreRecovery.recover(
-                storeURL: storeURL,
-                initialError: error,
-                fileManager: fileManager
-            )
+        return try ModelContainer(
+            for: schema,
+            migrationPlan: CafeineXMigrationPlan.self,
+            configurations: [configuration]
+        )
+    }
+
+    private static func storeFileURLs(for storeURL: URL) -> [URL] {
+        ["", "-wal", "-shm"].map { suffix in
+            suffix.isEmpty ? storeURL : URL(filePath: storeURL.path + suffix)
         }
     }
 }
@@ -68,7 +136,7 @@ enum LegacyV3StoreRecovery {
             try removeStoreFiles(at: storeURL, fileManager: fileManager)
             let container = try makeEmptyCurrentContainer(at: storeURL)
             try importSnapshot(snapshot, into: container)
-            DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
+            try DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
             return container
         } catch {
             do {

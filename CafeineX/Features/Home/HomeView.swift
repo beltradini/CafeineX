@@ -6,6 +6,7 @@ struct HomeView: View {
     @Environment(SleepScheduleStore.self) private var sleepScheduleStore
     @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
     @Environment(QuickAddCoordinator.self) private var quickAddCoordinator
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     @Query private var entries: [CaffeineEntry]
     @Query private var nicotineEntries: [NicotineEntry]
@@ -153,12 +154,14 @@ struct HomeView: View {
         .animation(.snappy, value: viewModel.feedback?.id)
         .sensoryFeedback(.success, trigger: viewModel.feedback?.id)
         .task {
-            DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
-            CigaretteLibrary.bootstrapIfNeeded(
-                profiles: cigaretteProfiles,
-                preferences: cigarettePreferences,
-                context: modelContext
-            )
+            persistenceIssues.attempt("Preparing local libraries") {
+                try DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+                try CigaretteLibrary.bootstrapIfNeeded(
+                    profiles: cigaretteProfiles,
+                    preferences: cigarettePreferences,
+                    context: modelContext
+                )
+            }
             ensureProfileExists()
             updateGuidancePreferences()
             viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
@@ -341,12 +344,16 @@ struct HomeView: View {
             return
         }
         modelContext.insert(AwarenessCheckIn(day: today))
-        try? modelContext.save()
+        persistenceIssues.attempt("Saving today's review") {
+            try modelContext.save()
+        }
     }
 
     private func ensureProfileExists() {
         guard profiles.isEmpty else { return }
-        _ = try? UserProfileStore.resolve(in: modelContext)
+        persistenceIssues.attempt("Preparing the local profile") {
+            _ = try UserProfileStore.resolve(in: modelContext)
+        }
     }
 
     private func feedbackBanner(_ feedback: HomeViewModel.Feedback) -> some View {

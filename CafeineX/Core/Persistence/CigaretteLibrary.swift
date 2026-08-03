@@ -7,7 +7,7 @@ enum CigaretteLibrary {
         profiles: [CigaretteProfile],
         preferences: [CigarettePreferences],
         context: ModelContext
-    ) {
+    ) throws {
         var changed = false
         if profiles.isEmpty {
             context.insert(
@@ -23,7 +23,7 @@ enum CigaretteLibrary {
             context.insert(CigarettePreferences())
             changed = true
         }
-        if changed { try? context.save() }
+        if changed { try context.save() }
     }
 
     static func recordUse(

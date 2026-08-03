@@ -4,6 +4,7 @@ import SwiftUI
 struct ExposureEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
     @FocusState private var focusedField: Field?
     @Query private var cigaretteProfiles: [CigaretteProfile]
     @Query private var cigaretteDetailsValues: [CigaretteEventDetails]
@@ -20,7 +21,6 @@ struct ExposureEditorView: View {
     @State private var nicotineNote: String
     @State private var cigaretteProfileID: UUID?
     @State private var cigaretteContext: CigaretteContext?
-    @State private var errorMessage: String?
 
     private enum Field: Hashable {
         case name
@@ -96,17 +96,6 @@ struct ExposureEditorView: View {
                 if !product.allowedUnits.contains(nicotineUnit) {
                     nicotineUnit = product.defaultUnit
                 }
-            }
-            .alert(
-                "Could Not Save",
-                isPresented: Binding(
-                    get: { errorMessage != nil },
-                    set: { if !$0 { errorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
             }
         }
         .presentationDetents([.medium, .large])
@@ -246,7 +235,9 @@ struct ExposureEditorView: View {
             try modelContext.save()
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            persistenceIssues.report("Saving the exposure event", error: error) {
+                try modelContext.save()
+            }
         }
     }
 }

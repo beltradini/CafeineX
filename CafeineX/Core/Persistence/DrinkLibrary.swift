@@ -6,10 +6,10 @@ enum DrinkLibrary {
     static func bootstrapIfNeeded(
         drinks: [Drink],
         context: ModelContext
-    ) {
+    ) throws {
         guard drinks.isEmpty,
-              (try? context.fetchCount(FetchDescriptor<Drink>())) == 0 else {
-            backfillDetailsIfNeeded(context: context)
+              try context.fetchCount(FetchDescriptor<Drink>()) == 0 else {
+            try backfillDetailsIfNeeded(context: context)
             return
         }
 
@@ -55,33 +55,33 @@ enum DrinkLibrary {
                 )
             )
         }
-        try? context.save()
+        try context.save()
     }
 
-    static func backfillDetailsIfNeeded(context: ModelContext) {
-        guard let drinks = try? context.fetch(
+    static func backfillDetailsIfNeeded(context: ModelContext) throws {
+        let drinks = try context.fetch(
             FetchDescriptor<Drink>(
                 sortBy: [
                     SortDescriptor(\.createdAt),
                     SortDescriptor(\.name),
                 ]
             )
-        ),
-        !drinks.isEmpty else {
+        )
+        guard !drinks.isEmpty else {
             return
         }
 
-        let existingDetails = (try? context.fetch(
+        let existingDetails = try context.fetch(
             FetchDescriptor<DrinkDetails>()
-        )) ?? []
+        )
         let existingIDs = Set(existingDetails.map(\.drinkID))
-        let legacyMetadata = (try? context.fetch(
+        let legacyMetadata = try context.fetch(
             FetchDescriptor<DrinkMetadata>()
-        )) ?? []
+        )
         let legacyByDrinkID = Dictionary(
             uniqueKeysWithValues: legacyMetadata.map { ($0.drinkID, $0) }
         )
-        let schemaState = try? context.fetch(
+        let schemaState = try context.fetch(
             FetchDescriptor<PhaseCSchemaState>()
         ).first
         var favoriteOrder = nextFavoriteOrder(in: existingDetails)
@@ -124,7 +124,7 @@ enum DrinkLibrary {
         }
 
         if insertedAny || updatedSchemaState {
-            try? context.save()
+            try context.save()
         }
     }
 
@@ -133,7 +133,7 @@ enum DrinkLibrary {
         at date: Date,
         detailsValues: [DrinkDetails],
         context: ModelContext
-    ) {
+    ) throws {
         let details = details(
             for: drink,
             in: detailsValues,
@@ -142,14 +142,14 @@ enum DrinkLibrary {
         details.useCount += 1
         details.lastUsedAt = date
         details.updatedAt = .now
-        try? context.save()
+        try context.save()
     }
 
     static func archive(
         _ drink: Drink,
         detailsValues: [DrinkDetails],
         context: ModelContext
-    ) {
+    ) throws {
         let details = details(
             for: drink,
             in: detailsValues,
@@ -160,14 +160,14 @@ enum DrinkLibrary {
         details.favoriteOrder = nil
         drink.isFavorite = false
         details.updatedAt = .now
-        try? context.save()
+        try context.save()
     }
 
     static func restore(
         _ drink: Drink,
         detailsValues: [DrinkDetails],
         context: ModelContext
-    ) {
+    ) throws {
         let details = details(
             for: drink,
             in: detailsValues,
@@ -176,7 +176,7 @@ enum DrinkLibrary {
         details.isArchived = false
         details.archivedAt = nil
         details.updatedAt = .now
-        try? context.save()
+        try context.save()
     }
 
     static func setFavorite(
@@ -184,7 +184,7 @@ enum DrinkLibrary {
         for drink: Drink,
         detailsValues: [DrinkDetails],
         context: ModelContext
-    ) {
+    ) throws {
         let details = details(
             for: drink,
             in: detailsValues,
@@ -203,14 +203,14 @@ enum DrinkLibrary {
         }
         drink.isFavorite = isFavorite
         details.updatedAt = .now
-        try? context.save()
+        try context.save()
     }
 
     static func reorderFavorites(
         _ drinks: [Drink],
         detailsValues: [DrinkDetails],
         context: ModelContext
-    ) {
+    ) throws {
         for (index, drink) in drinks.enumerated() {
             let details = details(
                 for: drink,
@@ -220,7 +220,7 @@ enum DrinkLibrary {
             details.favoriteOrder = index
             details.updatedAt = .now
         }
-        try? context.save()
+        try context.save()
     }
 
     static func nextFavoriteOrder(in values: [DrinkDetails]) -> Int {

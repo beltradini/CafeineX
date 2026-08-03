@@ -9,12 +9,12 @@ struct DrinkLibraryTests {
         let container = try makeContainer()
         let context = container.mainContext
 
-        DrinkLibrary.bootstrapIfNeeded(drinks: [], context: context)
+        try DrinkLibrary.bootstrapIfNeeded(drinks: [], context: context)
         let first = try context.fetch(FetchDescriptor<Drink>())
         #expect(first.count == 5)
         #expect(first.filter(\.isFavorite).count == 4)
 
-        DrinkLibrary.bootstrapIfNeeded(drinks: first, context: context)
+        try DrinkLibrary.bootstrapIfNeeded(drinks: first, context: context)
         #expect(try context.fetchCount(FetchDescriptor<Drink>()) == 5)
     }
 
@@ -30,7 +30,7 @@ struct DrinkLibraryTests {
         context.insert(drink)
         try context.save()
 
-        DrinkLibrary.recordUse(
+        try DrinkLibrary.recordUse(
             of: drink,
             at: .now,
             detailsValues: [],
@@ -39,7 +39,7 @@ struct DrinkLibraryTests {
         var details = try #require(
             context.fetch(FetchDescriptor<DrinkDetails>()).first
         )
-        DrinkLibrary.archive(
+        try DrinkLibrary.archive(
             drink,
             detailsValues: [details],
             context: context
@@ -52,7 +52,7 @@ struct DrinkLibraryTests {
         #expect(details.lastUsedAt != nil)
         #expect(details.drink?.id == drink.id)
 
-        DrinkLibrary.restore(
+        try DrinkLibrary.restore(
             drink,
             detailsValues: [details],
             context: context
@@ -96,7 +96,7 @@ struct DrinkLibraryTests {
         context.insert(secondDetails)
         try context.save()
 
-        DrinkLibrary.reorderFavorites(
+        try DrinkLibrary.reorderFavorites(
             [second, first],
             detailsValues: [firstDetails, secondDetails],
             context: context

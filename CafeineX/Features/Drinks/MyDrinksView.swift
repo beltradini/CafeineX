@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MyDrinksView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
     @Query(sort: \Drink.name) private var drinks: [Drink]
     @Query private var detailsValues: [DrinkDetails]
 
@@ -108,7 +109,9 @@ struct MyDrinksView: View {
                         modelContext.delete(details)
                     }
                     modelContext.delete(drink)
-                    try? modelContext.save()
+                    persistenceIssues.attempt("Deleting the drink profile") {
+                        try modelContext.save()
+                    }
                 }
                 permanentlyDeleting = nil
             }
@@ -120,7 +123,9 @@ struct MyDrinksView: View {
         }
         .sensoryFeedback(.success, trigger: feedbackTrigger)
         .task {
-            DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+            persistenceIssues.attempt("Preparing the drink library") {
+                try DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+            }
         }
     }
 
@@ -129,13 +134,16 @@ struct MyDrinksView: View {
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 if !isArchived(drink) {
                     Button {
-                        DrinkLibrary.setFavorite(
-                            !drink.isFavorite,
-                            for: drink,
-                            detailsValues: detailsValues,
-                            context: modelContext
-                        )
-                        feedbackTrigger += 1
+                        if persistenceIssues.attempt("Updating the favorite drink", action: {
+                            try DrinkLibrary.setFavorite(
+                                !drink.isFavorite,
+                                for: drink,
+                                detailsValues: detailsValues,
+                                context: modelContext
+                            )
+                        }) {
+                            feedbackTrigger += 1
+                        }
                     } label: {
                         Label(
                             drink.isFavorite ? "Unfavorite" : "Favorite",
@@ -148,12 +156,15 @@ struct MyDrinksView: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 if isArchived(drink) {
                     Button {
-                        DrinkLibrary.restore(
-                            drink,
-                            detailsValues: detailsValues,
-                            context: modelContext
-                        )
-                        feedbackTrigger += 1
+                        if persistenceIssues.attempt("Restoring the drink profile", action: {
+                            try DrinkLibrary.restore(
+                                drink,
+                                detailsValues: detailsValues,
+                                context: modelContext
+                            )
+                        }) {
+                            feedbackTrigger += 1
+                        }
                     } label: {
                         Label("Restore", systemImage: "arrow.uturn.backward")
                     }
@@ -164,12 +175,15 @@ struct MyDrinksView: View {
                     }
                 } else {
                     Button {
-                        DrinkLibrary.archive(
-                            drink,
-                            detailsValues: detailsValues,
-                            context: modelContext
-                        )
-                        feedbackTrigger += 1
+                        if persistenceIssues.attempt("Archiving the drink profile", action: {
+                            try DrinkLibrary.archive(
+                                drink,
+                                detailsValues: detailsValues,
+                                context: modelContext
+                            )
+                        }) {
+                            feedbackTrigger += 1
+                        }
                     } label: {
                         Label("Archive", systemImage: "archivebox")
                     }
@@ -293,12 +307,15 @@ struct MyDrinksView: View {
     ) {
         var reordered = favoriteDrinks
         reordered.move(fromOffsets: source, toOffset: destination)
-        DrinkLibrary.reorderFavorites(
-            reordered,
-            detailsValues: detailsValues,
-            context: modelContext
-        )
-        feedbackTrigger += 1
+        if persistenceIssues.attempt("Reordering favorite drinks", action: {
+            try DrinkLibrary.reorderFavorites(
+                reordered,
+                detailsValues: detailsValues,
+                context: modelContext
+            )
+        }) {
+            feedbackTrigger += 1
+        }
     }
 }
 

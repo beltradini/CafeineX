@@ -74,7 +74,7 @@ struct SwiftDataMigrationTests {
             configurations: [versionedConfiguration]
         )
         let migratedContext = migratedContainer.mainContext
-        DrinkLibrary.backfillDetailsIfNeeded(context: migratedContext)
+        try DrinkLibrary.backfillDetailsIfNeeded(context: migratedContext)
         let entries = try migratedContext.fetch(FetchDescriptor<CaffeineEntry>())
         let drinks = try migratedContext.fetch(FetchDescriptor<Drink>())
 
@@ -341,7 +341,7 @@ struct SwiftDataMigrationTests {
             migrationPlan: CafeineXMigrationPlan.self,
             configurations: [configuration]
         )
-        DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
+        try DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
         let details = try container.mainContext.fetch(
             FetchDescriptor<DrinkDetails>()
         )

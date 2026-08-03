@@ -64,10 +64,10 @@ struct CigarettePersistenceTests {
         let container = try ModelContainer(for: schema, configurations: [configuration])
         let context = container.mainContext
 
-        CigaretteLibrary.bootstrapIfNeeded(profiles: [], preferences: [], context: context)
+        try CigaretteLibrary.bootstrapIfNeeded(profiles: [], preferences: [], context: context)
         var profiles = try context.fetch(FetchDescriptor<CigaretteProfile>())
         var preferences = try context.fetch(FetchDescriptor<CigarettePreferences>())
-        CigaretteLibrary.bootstrapIfNeeded(profiles: profiles, preferences: preferences, context: context)
+        try CigaretteLibrary.bootstrapIfNeeded(profiles: profiles, preferences: preferences, context: context)
         profiles = try context.fetch(FetchDescriptor<CigaretteProfile>())
         preferences = try context.fetch(FetchDescriptor<CigarettePreferences>())
 

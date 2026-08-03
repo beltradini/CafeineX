@@ -22,6 +22,7 @@ enum QuickAddRequest {
 struct QuickAddSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
     @Query(sort: \Drink.name) private var drinks: [Drink]
     @Query private var drinkDetails: [DrinkDetails]
     @Query private var cigaretteProfiles: [CigaretteProfile]
@@ -110,12 +111,14 @@ struct QuickAddSheet: View {
                 }
             }
             .task {
-                DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
-                CigaretteLibrary.bootstrapIfNeeded(
-                    profiles: cigaretteProfiles,
-                    preferences: cigarettePreferences,
-                    context: modelContext
-                )
+                persistenceIssues.attempt("Preparing quick-add libraries") {
+                    try DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+                    try CigaretteLibrary.bootstrapIfNeeded(
+                        profiles: cigaretteProfiles,
+                        preferences: cigarettePreferences,
+                        context: modelContext
+                    )
+                }
                 await Task.yield()
                 if let first = favoriteDrinks.first ?? activeDrinks.first {
                     select(first)

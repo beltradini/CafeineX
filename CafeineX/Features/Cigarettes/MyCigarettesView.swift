@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MyCigarettesView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
     @Query private var profiles: [CigaretteProfile]
     @Query private var preferences: [CigarettePreferences]
 
@@ -19,7 +20,9 @@ struct MyCigarettesView: View {
                         set: {
                             preference.goal = $0
                             preference.updatedAt = .now
-                            try? modelContext.save()
+                            persistenceIssues.attempt("Saving cigarette goal") {
+                                try modelContext.save()
+                            }
                         }
                     )) {
                         ForEach(CigaretteGoal.allCases) { goal in
@@ -35,7 +38,9 @@ struct MyCigarettesView: View {
                                 set: {
                                     preference.optionalDailyTarget = $0.map { max($0, 0) }
                                     preference.updatedAt = .now
-                                    try? modelContext.save()
+                                    persistenceIssues.attempt("Saving the optional cigarette target") {
+                                        try modelContext.save()
+                                    }
                                 }
                             ),
                             format: .number
@@ -64,7 +69,9 @@ struct MyCigarettesView: View {
                         .swipeActions(edge: .trailing) {
                             Button("Archive") {
                                 CigaretteLibrary.archive(profile)
-                                try? modelContext.save()
+                                persistenceIssues.attempt("Archiving the cigarette profile") {
+                                    try modelContext.save()
+                                }
                             }
                             .tint(.orange)
                         }
@@ -81,7 +88,9 @@ struct MyCigarettesView: View {
                                         profile.isArchived = false
                                         profile.archivedAt = nil
                                         profile.updatedAt = .now
-                                        try? modelContext.save()
+                                        persistenceIssues.attempt("Restoring the cigarette profile") {
+                                            try modelContext.save()
+                                        }
                                     }
                                     .tint(.green)
                                 }
@@ -112,11 +121,13 @@ struct MyCigarettesView: View {
             CigaretteProfileEditor(profile: profile)
         }
         .task {
-            CigaretteLibrary.bootstrapIfNeeded(
-                profiles: profiles,
-                preferences: preferences,
-                context: modelContext
-            )
+            persistenceIssues.attempt("Preparing the cigarette library") {
+                try CigaretteLibrary.bootstrapIfNeeded(
+                    profiles: profiles,
+                    preferences: preferences,
+                    context: modelContext
+                )
+            }
         }
     }
 
@@ -162,13 +173,16 @@ struct MyCigarettesView: View {
             ? (profiles.compactMap(\.favoriteOrder).max() ?? -1) + 1
             : nil
         profile.updatedAt = .now
-        try? modelContext.save()
+        persistenceIssues.attempt("Updating the favorite cigarette") {
+            try modelContext.save()
+        }
     }
 }
 
 private struct CigaretteProfileEditor: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     let profile: CigaretteProfile?
     @State private var name: String
@@ -230,7 +244,10 @@ private struct CigaretteProfileEditor: View {
                 favoriteOrder: isFavorite ? 0 : nil
             ))
         }
-        try? modelContext.save()
-        dismiss()
+        if persistenceIssues.attempt("Saving the cigarette profile", action: {
+            try modelContext.save()
+        }) {
+            dismiss()
+        }
     }
 }

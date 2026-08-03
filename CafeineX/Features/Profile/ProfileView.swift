@@ -6,6 +6,7 @@ struct ProfileView: View {
     @Environment(SleepScheduleStore.self) private var sleepScheduleStore
     @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
     @Environment(AppearanceStore.self) private var appearanceStore
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     @Query private var profiles: [UserProfile]
     @Query private var caffeineEntries: [CaffeineEntry]
@@ -120,12 +121,14 @@ struct ProfileView: View {
         }
         .task {
             ensureProfileExists()
-            DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
-            CigaretteLibrary.bootstrapIfNeeded(
-                profiles: cigaretteProfiles,
-                preferences: cigarettePreferences,
-                context: modelContext
-            )
+            persistenceIssues.attempt("Preparing profile libraries") {
+                try DrinkLibrary.bootstrapIfNeeded(drinks: drinks, context: modelContext)
+                try CigaretteLibrary.bootstrapIfNeeded(
+                    profiles: cigaretteProfiles,
+                    preferences: cigarettePreferences,
+                    context: modelContext
+                )
+            }
         }
     }
 
@@ -329,6 +332,8 @@ struct ProfileView: View {
 
     private func ensureProfileExists() {
         guard profiles.isEmpty else { return }
-        _ = try? UserProfileStore.resolve(in: modelContext)
+        persistenceIssues.attempt("Creating the local profile") {
+            _ = try UserProfileStore.resolve(in: modelContext)
+        }
     }
 }

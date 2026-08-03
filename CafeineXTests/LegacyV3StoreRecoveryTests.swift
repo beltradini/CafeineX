@@ -120,6 +120,39 @@ struct LegacyV3StoreRecoveryTests {
         )
     }
 
+    @Test func manualRecoveryPreservesUnreadableStoreBeforeStartingFresh() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appending(path: "default.store")
+        let originalStore = Data("not-a-sqlite-store".utf8)
+        let originalWAL = Data("pending-wal".utf8)
+        try originalStore.write(to: storeURL)
+        try originalWAL.write(to: URL(filePath: storeURL.path + "-wal"))
+
+        let container = try CafeineXStoreFactory.makeFreshContainerPreservingUnreadableStore(
+            storeURL: storeURL,
+            originalErrorDescription: "Pilot storage fixture"
+        )
+        let context = container.mainContext
+        context.insert(CaffeineEntry(drinkName: "Recovered", caffeineMG: 64))
+        try context.save()
+        #expect(try context.fetchCount(FetchDescriptor<CaffeineEntry>()) == 1)
+
+        let backups = try FileManager.default.contentsOfDirectory(
+            at: CafeineXStoreFactory.recoveryRootURL(for: storeURL),
+            includingPropertiesForKeys: nil
+        )
+        let backup = try #require(backups.first)
+        #expect(try Data(contentsOf: backup.appending(path: "default.store")) == originalStore)
+        #expect(try Data(contentsOf: backup.appending(path: "default.store-wal")) == originalWAL)
+        #expect(
+            try String(
+                contentsOf: backup.appending(path: "storage-error.txt"),
+                encoding: .utf8
+            ) == "Pilot storage fixture"
+        )
+    }
+
     private func makeTemporaryDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appending(
             path: "CafeineXLegacyRecoveryTests-\(UUID().uuidString)",

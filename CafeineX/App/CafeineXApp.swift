@@ -5,39 +5,38 @@
 //  Created by Alejandro Beltrán on 5/24/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct CafeineXApp: App {
+    @State private var persistenceController = CafeineXPersistenceController()
+    @State private var persistenceIssueCenter = PersistenceIssueCenter()
     @State private var sleepScheduleStore = SleepScheduleStore()
     @State private var sensitivityStore = CaffeineSensitivityStore()
     @State private var appearanceStore = AppearanceStore()
 
-    var sharedModelContainer: ModelContainer = {
-        do {
-            let container = try CafeineXStoreFactory.makePersistentContainer()
-            DrinkLibrary.backfillDetailsIfNeeded(context: container.mainContext)
-            let profiles = (try? container.mainContext.fetch(FetchDescriptor<CigaretteProfile>())) ?? []
-            let preferences = (try? container.mainContext.fetch(FetchDescriptor<CigarettePreferences>())) ?? []
-            CigaretteLibrary.bootstrapIfNeeded(
-                profiles: profiles,
-                preferences: preferences,
-                context: container.mainContext
-            )
-            return container
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
     var body: some Scene {
         WindowGroup {
-            AppShellView()
-                .environment(sleepScheduleStore)
-                .environment(sensitivityStore)
-                .environment(appearanceStore)
+            switch persistenceController.state {
+            case .loading:
+                ProgressView("Opening CafeineX…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            case .ready(let container):
+                AppShellView(persistenceIssueCenter: persistenceIssueCenter)
+                    .environment(sleepScheduleStore)
+                    .environment(sensitivityStore)
+                    .environment(appearanceStore)
+                    .modelContainer(container)
+
+            case .unavailable(let failure):
+                StorageUnavailableView(
+                    failure: failure,
+                    retry: persistenceController.retry,
+                    preserveAndStartFresh: persistenceController.preserveAndStartFresh
+                )
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 }

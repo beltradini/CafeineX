@@ -6,6 +6,7 @@ import UIKit
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     let profile: UserProfile
 
@@ -95,7 +96,7 @@ struct EditProfileView: View {
     }
 
     private func save() {
-        do {
+        if persistenceIssues.attempt("Saving the user profile", action: {
             try UserProfileStore.save(
                 profile,
                 displayName: displayName,
@@ -103,9 +104,8 @@ struct EditProfileView: View {
                 goal: goal,
                 in: modelContext
             )
+        }) {
             dismiss()
-        } catch {
-            assertionFailure("Unable to save profile: \(error)")
         }
     }
 

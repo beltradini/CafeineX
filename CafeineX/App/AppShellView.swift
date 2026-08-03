@@ -14,9 +14,18 @@ struct AppShellView: View {
     @Query private var drinks: [Drink]
     @Query private var cigaretteProfiles: [CigaretteProfile]
 
+    @Bindable var persistenceIssueCenter: PersistenceIssueCenter
+
     @State private var selectedTab = AppTab.home
     @State private var quickAddCoordinator = QuickAddCoordinator()
-    @State private var homeViewModel = HomeViewModel()
+    @State private var homeViewModel: HomeViewModel
+
+    init(persistenceIssueCenter: PersistenceIssueCenter) {
+        self.persistenceIssueCenter = persistenceIssueCenter
+        _homeViewModel = State(
+            initialValue: HomeViewModel(persistenceIssueCenter: persistenceIssueCenter)
+        )
+    }
 
     var body: some View {
         @Bindable var quickAddCoordinator = quickAddCoordinator
@@ -47,6 +56,7 @@ struct AppShellView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .environment(persistenceIssueCenter)
         .environment(quickAddCoordinator)
         .sheet(isPresented: $quickAddCoordinator.isPresented) {
             QuickAddSheet(initialKind: quickAddCoordinator.initialKind) { request in
@@ -54,6 +64,21 @@ struct AppShellView: View {
             }
         }
         .preferredColorScheme(appearanceStore.selection.colorScheme)
+        .alert(item: Binding(
+            get: { persistenceIssueCenter.issue },
+            set: { if $0 == nil { persistenceIssueCenter.dismiss() } }
+        )) { issue in
+            Alert(
+                title: Text("Could Not Save"),
+                message: Text("\(issue.operation) failed. \(issue.errorDescription)"),
+                primaryButton: .default(Text("Try Again")) {
+                    persistenceIssueCenter.retry()
+                },
+                secondaryButton: .cancel(Text("Dismiss")) {
+                    persistenceIssueCenter.dismiss()
+                }
+            )
+        }
     }
 
     private func save(_ request: QuickAddRequest) -> Bool {
@@ -102,7 +127,7 @@ struct AppShellView: View {
 }
 
 #Preview {
-    AppShellView()
+    AppShellView(persistenceIssueCenter: PersistenceIssueCenter())
         .environment(SleepScheduleStore())
         .environment(CaffeineSensitivityStore())
         .environment(AppearanceStore())

@@ -4,6 +4,7 @@ import SwiftUI
 struct ExposureDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     let item: ExposureItem
 
@@ -149,7 +150,10 @@ struct ExposureDetailView: View {
             }
             modelContext.delete(entry)
         }
-        try? modelContext.save()
-        dismiss()
+        if persistenceIssues.attempt("Deleting the exposure event", action: {
+            try modelContext.save()
+        }) {
+            dismiss()
+        }
     }
 }

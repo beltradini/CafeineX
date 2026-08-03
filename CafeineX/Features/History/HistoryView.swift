@@ -55,6 +55,7 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(QuickAddCoordinator.self) private var quickAddCoordinator
+    @Environment(PersistenceIssueCenter.self) private var persistenceIssues
 
     @Query(sort: \CaffeineEntry.consumedAt, order: .reverse)
     private var caffeineEntries: [CaffeineEntry]
@@ -397,7 +398,9 @@ struct HistoryView: View {
             }
             modelContext.delete(entry)
         }
-        try? modelContext.save()
+        persistenceIssues.attempt("Deleting the exposure event") {
+            try modelContext.save()
+        }
     }
 }
 
@@ -406,6 +409,7 @@ struct HistoryView: View {
         HistoryView()
     }
     .environment(QuickAddCoordinator())
+    .environment(PersistenceIssueCenter())
     .modelContainer(
         for: [
             CaffeineEntry.self,

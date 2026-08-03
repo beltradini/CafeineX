@@ -37,6 +37,7 @@ final class HomeViewModel {
     private var engine: CaffeineEngine
     private var sleepSchedule: SleepSchedule = .default
     private let healthKitService: any HealthKitProviding
+    private let persistenceIssueCenter: PersistenceIssueCenter?
     private var pendingHealthWrites: [UUID: Task<Void, Never>] = [:]
     private var pendingDrinkUsage: [UUID: DrinkUsageSnapshot] = [:]
     private var pendingOutboxItems: [UUID: HealthSyncOutboxItem] = [:]
@@ -57,15 +58,21 @@ final class HomeViewModel {
     var isLoadingSleep = false
     var feedback: Feedback?
 
-    init() {
+    init(persistenceIssueCenter: PersistenceIssueCenter? = nil) {
         self.engine = CaffeineEngine()
         self.healthKitService = HealthKitService()
+        self.persistenceIssueCenter = persistenceIssueCenter
         refreshHealthAccessState()
     }
 
-    init(engine: CaffeineEngine, healthKitService: any HealthKitProviding) {
+    init(
+        engine: CaffeineEngine,
+        healthKitService: any HealthKitProviding,
+        persistenceIssueCenter: PersistenceIssueCenter? = nil
+    ) {
         self.engine = engine
         self.healthKitService = healthKitService
+        self.persistenceIssueCenter = persistenceIssueCenter
         refreshHealthAccessState()
     }
 
@@ -208,6 +215,11 @@ final class HomeViewModel {
             }
         } catch {
             healthMessage = error.localizedDescription
+            reportPersistenceFailure(
+                operation: "Saving Apple Health synchronization",
+                error: error,
+                context: context
+            )
         }
     }
 
@@ -238,9 +250,12 @@ final class HomeViewModel {
         do {
             try context.save()
         } catch {
-            context.delete(outboxItem)
-            context.delete(entry)
             healthMessage = "CafeineX could not save this entry: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Saving the caffeine entry",
+                error: error,
+                context: context
+            )
             return false
         }
 
@@ -258,12 +273,20 @@ final class HomeViewModel {
                 useCount: details.useCount,
                 lastUsedAt: details.lastUsedAt
             )
-            DrinkLibrary.recordUse(
-                of: drink,
-                at: entry.consumedAt,
-                detailsValues: [details],
-                context: context
-            )
+            do {
+                try DrinkLibrary.recordUse(
+                    of: drink,
+                    at: entry.consumedAt,
+                    detailsValues: [details],
+                    context: context
+                )
+            } catch {
+                reportPersistenceFailure(
+                    operation: "Updating drink usage",
+                    error: error,
+                    context: context
+                )
+            }
         }
         recalculateStatus()
         feedback = Feedback(entryID: entry.id, message: "\(normalizedName) added")
@@ -303,6 +326,11 @@ final class HomeViewModel {
             try context.save()
         } catch {
             healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Undoing the caffeine entry",
+                error: error,
+                context: context
+            )
             return false
         }
 
@@ -372,8 +400,12 @@ final class HomeViewModel {
         do {
             try context.save()
         } catch {
-            context.delete(entry)
             healthMessage = "CafeineX could not save this nicotine entry: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Saving the nicotine entry",
+                error: error,
+                context: context
+            )
             return false
         }
 
@@ -419,9 +451,12 @@ final class HomeViewModel {
         do {
             try context.save()
         } catch {
-            context.delete(details)
-            context.delete(entry)
             healthMessage = "CafeineX could not save this cigarette: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Saving the cigarette entry",
+                error: error,
+                context: context
+            )
             return false
         }
 
@@ -469,6 +504,11 @@ final class HomeViewModel {
             try context.save()
         } catch {
             healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Undoing the nicotine entry",
+                error: error,
+                context: context
+            )
             return false
         }
         nicotineEntries.removeAll { $0.id == identifier }
@@ -499,6 +539,21 @@ final class HomeViewModel {
             healthMessage = nil
         } catch {
             healthMessage = "Saved on this device, but Apple Health could not be updated: \(error.localizedDescription)"
+            reportPersistenceFailure(
+                operation: "Saving the Apple Health link",
+                error: error,
+                context: context
+            )
+        }
+    }
+
+    private func reportPersistenceFailure(
+        operation: String,
+        error: Error,
+        context: ModelContext
+    ) {
+        persistenceIssueCenter?.report(operation, error: error) {
+            try context.save()
         }
     }
 
