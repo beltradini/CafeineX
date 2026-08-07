@@ -63,12 +63,6 @@ struct HomeView: View {
                                 }
                             }
                         )
-                    } else {
-                        HomeQuickAddView(
-                            favoriteDrinks: favoriteDrinks,
-                            addDrink: addFavorite,
-                            openQuickAdd: quickAddCoordinator.present
-                        )
                     }
 
                     if let status = viewModel.status {
@@ -77,6 +71,14 @@ struct HomeView: View {
 
                     if let context = viewModel.dailyExposureContext {
                         DailyExposureCard(context: context)
+                    }
+
+                    if !allItems.isEmpty {
+                        HomeQuickAddView(
+                            favoriteDrinks: favoriteDrinks,
+                            addDrink: addFavorite,
+                            openQuickAdd: quickAddCoordinator.present
+                        )
                     }
 
                     HealthInsightsCard(
@@ -379,12 +381,12 @@ struct HomeView: View {
             Spacer()
 
             Button("Undo") {
-                withAnimation {
-                    _ = viewModel.undoLastAdd(context: modelContext)
+                Task { @MainActor in
+                    _ = await viewModel.undoLastAdd(context: modelContext)
                 }
             }
             .font(.subheadline.bold())
-            .accessibilityIdentifier("cigarette-undo-button")
+            .accessibilityIdentifier("undo-last-add-button")
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)

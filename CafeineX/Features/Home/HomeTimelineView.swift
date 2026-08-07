@@ -23,14 +23,31 @@ struct HomeTimelineView: View {
                 }
             } else {
                 ForEach(items) { item in
-                    NavigationLink {
-                        ExposureDetailView(item: item)
-                    } label: {
-                        CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
-                            ExposureRow(item: item)
+                    CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
+                        HStack(spacing: 10) {
+                            NavigationLink {
+                                ExposureDetailView(item: item)
+                            } label: {
+                                ExposureRow(item: item)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                repeatItem(item)
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(width: 40, height: 40)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(item.kind == .caffeine
+                                ? CXTheme.caffeineAccent
+                                : CXTheme.nicotineAccent)
+                            .accessibilityLabel("Log \(item.title) again")
+                            .accessibilityHint("Adds the same amount at the current time")
                         }
                     }
-                    .buttonStyle(.plain)
                     .contextMenu {
                         Button {
                             repeatItem(item)

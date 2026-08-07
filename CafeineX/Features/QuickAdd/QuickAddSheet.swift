@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -29,6 +30,9 @@ struct QuickAddSheet: View {
     @Query private var cigarettePreferences: [CigarettePreferences]
     @FocusState private var focusedField: Field?
 
+    @AppStorage("lastCaffeineDrinkID") private var lastCaffeineDrinkIDString: String?
+    @AppStorage("lastNicotineProductRawValue") private var lastNicotineProductRawValue: String = NicotineProduct.cigarette.rawValue
+
     @State private var kind: QuickAddKind
     @State private var caffeineName = "Espresso"
     @State private var caffeineMG = 64.0
@@ -41,6 +45,8 @@ struct QuickAddSheet: View {
     @State private var nicotineNote = ""
     @State private var selectedCigaretteProfileID: UUID?
     @State private var cigaretteContext: CigaretteContext?
+
+    @State private var isExpanded = false
 
     private let onSave: (QuickAddRequest) -> Bool
 
@@ -62,27 +68,32 @@ struct QuickAddSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Picker("Exposure type", selection: $kind) {
-                        ForEach(QuickAddKind.allCases) { item in
-                            Text(item.title)
-                                .tag(item)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityLabel("Exposure type")
-                }
+                if isExpanded {
+                    Section {
+                        Picker("Exposure type", selection: $kind) {
+                            ForEach(QuickAddKind.allCases) { item in
 
-                switch kind {
-                case .caffeine:
-                    caffeineForm
-                case .nicotine:
-                    nicotineForm
+                                Text(item.title)
+                                    .tag(item)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityLabel("Exposure type")
+                    }
+
+                    switch kind {
+                    case .caffeine:
+                        caffeineForm
+                    case .nicotine:
+                        nicotineForm
+                    }
+                } else {
+                    quickStartContent
                 }
             }
             .scrollDismissesKeyboard(.interactively)
             .cxContentBackground()
-            .navigationTitle("Quick Add")
+            .navigationTitle(isExpanded ? "Customize" : "Add exposure")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -91,12 +102,14 @@ struct QuickAddSheet: View {
                     }
                 }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        save()
+                if isExpanded {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Add") {
+                            save()
+                        }
+                        .fontWeight(.semibold)
+                        .disabled(!isValid)
                     }
-                    .fontWeight(.semibold)
-                    .disabled(!isValid)
                 }
 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -121,14 +134,130 @@ struct QuickAddSheet: View {
                     )
                 }
                 await Task.yield()
-                if let first = favoriteDrinks.first ?? activeDrinks.first {
+
+                // Restore last used caffeine drink if valid
+                if let lastDrinkIDString = lastCaffeineDrinkIDString,
+                   let drinkUUID = UUID(uuidString: lastDrinkIDString),
+                   let lastDrink = activeDrinks.first(where: { $0.id == drinkUUID }) {
+                    select(lastDrink)
+                } else if let first = favoriteDrinks.first ?? activeDrinks.first {
                     select(first)
                 }
+
+                // Restore last used nicotine product if valid
+                if let restoredProduct = NicotineProduct(rawValue: lastNicotineProductRawValue) {
+                    nicotineProduct = restoredProduct
+                } else {
+                    nicotineProduct = .cigarette
+                }
+
                 selectedCigaretteProfileID = activeCigaretteProfiles.first?.id
+                isExpanded = false
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var quickStartContent: some View {
+        Group {
+            switch kind {
+            case .caffeine:
+                Section {
+                    if favoriteDrinks.isEmpty {
+                        ContentUnavailableView {
+                            Label("No favorite drinks", systemImage: "star")
+                        } description: {
+                            Text("Add favorites in My Drinks for one-tap logging.")
+                        }
+                    } else {
+                        ForEach(favoriteDrinks.prefix(4)) { drink in
+                            Button {
+                                select(drink)
+                                save()
+                            } label: {
+                                Label {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(drink.name)
+                                            .font(.headline)
+                                        Text("\(Int(drink.caffeineMG.rounded())) mg · Now")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                } icon: {
+                                    Image(systemName: drink.category.symbol)
+                                        .foregroundStyle(CXTheme.caffeineAccent)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(CXTheme.caffeineAccent)
+                            .accessibilityHint("Logs it at the current time")
+                        }
+                    }
+                } header: {
+                    Text("Favorite drinks")
+                } footer: {
+                    Text("Tap a favorite to log it now. No extra confirmation is needed.")
+                }
+
+                Section {
+                    Button {
+                        withAnimation(.snappy) {
+                            isExpanded = true
+                        }
+                    } label: {
+                        Label("Customize caffeine", systemImage: "slider.horizontal.3")
+                    }
+
+                    Button {
+                        withAnimation(.snappy) {
+                            kind = .nicotine
+                        }
+                    } label: {
+                        Label("Log nicotine instead", systemImage: "waveform.path.ecg")
+                    }
+                    .tint(CXTheme.nicotineAccent)
+                }
+
+            case .nicotine:
+                Section {
+                    Button {
+                        save()
+                    } label: {
+                        Label("Log \(nicotineProduct.title) now", systemImage: nicotineProduct.symbol)
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(CXTheme.nicotineAccent)
+                    .disabled(!isValid)
+                } header: {
+                    Text("Quick log")
+                } footer: {
+                    Text("Uses your last selected nicotine product and quantity.")
+                }
+
+                Section {
+                    Button {
+                        withAnimation(.snappy) {
+                            isExpanded = true
+                        }
+                    } label: {
+                        Label("Customize nicotine", systemImage: "slider.horizontal.3")
+                    }
+
+                    Button {
+                        withAnimation(.snappy) {
+                            kind = .caffeine
+                        }
+                    } label: {
+                        Label("Log caffeine instead", systemImage: "cup.and.saucer")
+                    }
+                    .tint(CXTheme.caffeineAccent)
+                }
+            }
+        }
     }
 
     private var caffeineForm: some View {
@@ -314,6 +443,11 @@ struct QuickAddSheet: View {
                     date: caffeineDate
                 )
             )
+            if didSave {
+                if let matchedID = matchedDrinkID {
+                    lastCaffeineDrinkIDString = matchedID.uuidString
+                }
+            }
         case .nicotine:
             didSave = onSave(
                 .nicotine(
@@ -326,6 +460,9 @@ struct QuickAddSheet: View {
                     cigaretteContext: nicotineProduct == .cigarette ? cigaretteContext : nil
                 )
             )
+            if didSave {
+                lastNicotineProductRawValue = nicotineProduct.rawValue
+            }
         }
 
         if didSave {

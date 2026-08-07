@@ -8,17 +8,13 @@ struct HomeQuickAddView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Favorites")
-                        .font(.title2.bold())
-                    Text("One tap logs it now")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Label("Favorites", systemImage: "star.fill")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(CXTheme.caffeineAccent)
 
                 Spacer()
 
-                Button("More") {
+                Button("See all") {
                     openQuickAdd(.caffeine)
                 }
                 .font(.subheadline.weight(.semibold))
@@ -38,60 +34,41 @@ struct HomeQuickAddView: View {
                     }
                 }
             } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 140), spacing: 12)],
-                    spacing: 12
-                ) {
-                    ForEach(favoriteDrinks.prefix(6)) { drink in
-                        Button {
-                            addDrink(drink)
-                        } label: {
-                            CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: drink.category.symbol)
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(CXTheme.caffeineAccent)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(favoriteDrinks.prefix(6)) { drink in
+                            Button {
+                                addDrink(drink)
+                            } label: {
+                                CXSurfaceCard(cornerRadius: CXTheme.smallCornerRadius) {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: drink.category.symbol)
+                                            .font(.headline.weight(.semibold))
+                                            .foregroundStyle(CXTheme.caffeineAccent)
 
-                                    Text(drink.name)
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(drink.name)
+                                                .font(.headline)
+                                                .foregroundStyle(.primary)
+                                                .lineLimit(1)
 
-                                    Text("\(Int(drink.caffeineMG.rounded())) mg")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                            Text("\(Int(drink.caffeineMG.rounded())) mg")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .frame(width: 142, alignment: .leading)
+                                    .frame(minHeight: 54)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(minHeight: 76)
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(
+                                "Add \(drink.name), \(Int(drink.caffeineMG)) milligrams"
+                            )
+                            .accessibilityHint("Logs it at the current time")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(
-                            "Add \(drink.name), \(Int(drink.caffeineMG)) milligrams"
-                        )
-                        .accessibilityHint("Logs it at the current time")
                     }
                 }
-            }
-
-            HStack {
-                Button {
-                    openQuickAdd(.nicotine)
-                } label: {
-                    Label("Log nicotine", systemImage: "waveform.path.ecg")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(CXTheme.nicotineAccent)
-
-                NavigationLink {
-                    MyDrinksView()
-                } label: {
-                    Label("My Drinks", systemImage: "mug.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(CXTheme.caffeineAccent)
             }
         }
     }

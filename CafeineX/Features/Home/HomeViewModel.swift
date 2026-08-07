@@ -16,6 +16,12 @@ final class HomeViewModel {
         let id = UUID()
         let entryID: UUID
         let message: String
+        let kind: Kind
+
+        enum Kind: Equatable {
+            case caffeine
+            case nicotine
+        }
     }
 
     enum HealthAccessState: Equatable {
@@ -289,28 +295,49 @@ final class HomeViewModel {
             }
         }
         recalculateStatus()
-        feedback = Feedback(entryID: entry.id, message: "\(normalizedName) added")
+        presentFeedback(
+            Feedback(
+                entryID: entry.id,
+                message: "\(normalizedName) added",
+                kind: .caffeine
+            )
+        )
 
         pendingHealthWrites[entry.id] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled, let self else { return }
             await self.saveToHealthKit(entry, context: context)
             self.pendingHealthWrites[entry.id] = nil
-            self.pendingDrinkUsage[entry.id] = nil
         }
         return true
     }
 
     @discardableResult
-    func undoLastCaffeineAdd(context: ModelContext) -> Bool {
+    func undoLastCaffeineAdd(context: ModelContext) async -> Bool {
         guard let feedback,
+              feedback.kind == .caffeine,
               let entry = entries.first(where: { $0.id == feedback.entryID }),
-              entry.healthKitUUID == nil else {
+              entry.source != .healthKit else {
             return false
         }
 
         pendingHealthWrites[entry.id]?.cancel()
         pendingHealthWrites[entry.id] = nil
+
+        if let healthKitUUID = entry.healthKitUUID {
+            do {
+                _ = try await healthKitService.deleteCaffeineSamples(ids: [healthKitUUID])
+            } catch {
+                healthMessage = "CafeineX could not remove this Apple Health entry."
+                reportPersistenceFailure(
+                    operation: "Removing the caffeine entry from Apple Health",
+                    error: error,
+                    context: context
+                )
+                return false
+            }
+        }
+
         if let outboxItem = pendingOutboxItems.removeValue(forKey: entry.id)
             ?? outboxItem(for: entry.id, context: context) {
             context.delete(outboxItem)
@@ -341,6 +368,9 @@ final class HomeViewModel {
     }
 
     func dismissFeedback() {
+        if let feedback {
+            pendingDrinkUsage.removeValue(forKey: feedback.entryID)
+        }
         feedback = nil
     }
 
@@ -412,6 +442,13 @@ final class HomeViewModel {
         nicotineEntries.append(entry)
         nicotineEntries.sort { $0.usedAt > $1.usedAt }
         recalculateStatus()
+        presentFeedback(
+            Feedback(
+                entryID: entry.id,
+                message: "\(product.title) added",
+                kind: .nicotine
+            )
+        )
         return true
     }
 
@@ -463,14 +500,21 @@ final class HomeViewModel {
         nicotineEntries.append(entry)
         nicotineEntries.sort { $0.usedAt > $1.usedAt }
         recalculateStatus()
-        feedback = Feedback(entryID: entry.id, message: "Cigarette logged")
+        presentFeedback(
+            Feedback(
+                entryID: entry.id,
+                message: "Cigarette logged",
+                kind: .nicotine
+            )
+        )
         return true
     }
 
     @discardableResult
-    func undoLastAdd(context: ModelContext) -> Bool {
-        if undoLastCaffeineAdd(context: context) { return true }
+    func undoLastAdd(context: ModelContext) async -> Bool {
+        if await undoLastCaffeineAdd(context: context) { return true }
         guard let feedback,
+              feedback.kind == .nicotine,
               let entry = nicotineEntries.first(where: { $0.id == feedback.entryID }) else {
             return false
         }
@@ -515,6 +559,13 @@ final class HomeViewModel {
         self.feedback = nil
         recalculateStatus()
         return true
+    }
+
+    private func presentFeedback(_ newFeedback: Feedback) {
+        if let feedback, feedback.entryID != newFeedback.entryID {
+            pendingDrinkUsage.removeValue(forKey: feedback.entryID)
+        }
+        feedback = newFeedback
     }
 
     private func saveToHealthKit(_ entry: CaffeineEntry, context: ModelContext) async {

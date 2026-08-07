@@ -89,8 +89,8 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(quickAdd.waitForExistence(timeout: 8))
         quickAdd.tap()
 
-        XCTAssertTrue(app.navigationBars["Quick Add"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Add"].exists)
+        XCTAssertTrue(app.navigationBars["Add exposure"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Customize caffeine"].exists)
     }
 
     @MainActor
@@ -152,7 +152,7 @@ final class CafeineXUITests: XCTestCase {
         try scrollToHittable(logButton, in: app.scrollViews.firstMatch)
         logButton.tap()
 
-        let undo = app.descendants(matching: .any)["cigarette-undo-button"].firstMatch
+        let undo = app.descendants(matching: .any)["undo-last-add-button"].firstMatch
         XCTAssertTrue(undo.waitForExistence(timeout: 5))
         XCTAssertTrue(undo.isHittable)
         undo.tap()
