@@ -86,7 +86,7 @@ struct HealthKitSyncTests {
         #expect(healthStore.samples.count == 1)
     }
 
-    @Test func undoRestoresFavoriteUsageBeforeHealthUpload() throws {
+    @Test func undoRestoresFavoriteUsageBeforeHealthUpload() async throws {
         let schema = Schema([
             CaffeineEntry.self,
             Drink.self,
@@ -125,7 +125,7 @@ struct HealthKitSyncTests {
         )
         #expect(details.useCount == 1)
         #expect(details.drink?.id == drink.id)
-        #expect(viewModel.undoLastCaffeineAdd(context: context))
+        #expect(await viewModel.undoLastCaffeineAdd(context: context))
         #expect(details.useCount == 0)
         #expect(try context.fetchCount(FetchDescriptor<CaffeineEntry>()) == 0)
         #expect(

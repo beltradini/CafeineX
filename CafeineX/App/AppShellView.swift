@@ -11,6 +11,9 @@ enum AppTab: Hashable {
 struct AppShellView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppearanceStore.self) private var appearanceStore
+    @Environment(SleepScheduleStore.self) private var sleepScheduleStore
+    @Environment(NotificationPreferencesStore.self) private var notificationPreferencesStore
+    @Environment(RecentActionStore.self) private var recentActionStore
     @Query private var drinks: [Drink]
     @Query private var cigaretteProfiles: [CigaretteProfile]
 
@@ -19,6 +22,7 @@ struct AppShellView: View {
     @State private var selectedTab = AppTab.home
     @State private var quickAddCoordinator = QuickAddCoordinator()
     @State private var homeViewModel: HomeViewModel
+    private let notificationScheduler = NotificationScheduler()
 
     init(persistenceIssueCenter: PersistenceIssueCenter) {
         self.persistenceIssueCenter = persistenceIssueCenter
@@ -58,6 +62,10 @@ struct AppShellView: View {
         .tabViewStyle(.sidebarAdaptable)
         .environment(persistenceIssueCenter)
         .environment(quickAddCoordinator)
+        .task {
+            homeViewModel.attachRecentActionStore(recentActionStore)
+            await refreshNotifications()
+        }
         .sheet(isPresented: $quickAddCoordinator.isPresented) {
             QuickAddSheet(initialKind: quickAddCoordinator.initialKind) { request in
                 save(request)
@@ -128,6 +136,18 @@ struct AppShellView: View {
             }
         }
     }
+
+    private func refreshNotifications() async {
+        let selectedDrink = drinks.first {
+            $0.id == notificationPreferencesStore.preferences.habitualDrinkID
+        }
+
+        try? await notificationScheduler.reschedule(
+            preferences: notificationPreferencesStore.preferences,
+            sleepSchedule: sleepScheduleStore.schedule,
+            drinkName: selectedDrink?.name
+        )
+    }
 }
 
 #Preview {
@@ -135,6 +155,8 @@ struct AppShellView: View {
         .environment(SleepScheduleStore())
         .environment(CaffeineSensitivityStore())
         .environment(AppearanceStore())
+        .environment(RecentActionStore())
+        .environment(NotificationPreferencesStore())
         .modelContainer(
             for: [
                 CaffeineEntry.self,

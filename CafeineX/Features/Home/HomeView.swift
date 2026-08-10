@@ -73,13 +73,16 @@ struct HomeView: View {
                         DailyExposureCard(context: context)
                     }
 
-                    if !allItems.isEmpty {
-                        HomeQuickAddView(
-                            favoriteDrinks: favoriteDrinks,
-                            addDrink: addFavorite,
-                            openQuickAdd: quickAddCoordinator.present
-                        )
-                    }
+                    HomeQuickAddView(
+                        favoriteDrinks: favoriteDrinks,
+                        addDrink: addFavorite,
+                        openQuickAdd: quickAddCoordinator.present,
+                        nicotineProduct: quickNicotineProduct,
+                        nicotineQuantity: quickNicotineQuantity,
+                        logNicotine: logQuickNicotine
+                    )
+
+                    RecentActionsCard()
 
                     HealthInsightsCard(
                         state: viewModel.sleepDataState,
@@ -269,6 +272,49 @@ struct HomeView: View {
             .first
     }
 
+    private var latestNicotineEntry: NicotineEntry? {
+        nicotineEntries.first
+    }
+
+    private var quickNicotineProduct: NicotineProduct {
+        latestNicotineEntry?.product ?? .cigarette
+    }
+
+    private var quickNicotineQuantity: Double {
+        latestNicotineEntry?.quantity ?? 1
+    }
+
+    @discardableResult
+    private func logQuickNicotine() -> Bool {
+        guard let entry = latestNicotineEntry else {
+            return viewModel.addCigarette(
+                quantity: 1,
+                profileID: favoriteCigarette?.id,
+                profiles: cigaretteProfiles,
+                context: modelContext
+            )
+        }
+
+        switch entry.product {
+        case .cigarette:
+            let details = cigaretteDetails.first { $0.nicotineEntryID == entry.id }
+            return viewModel.addCigarette(
+                quantity: entry.quantity,
+                profileID: details?.cigaretteProfileID ?? favoriteCigarette?.id,
+                cigaretteContext: details?.context,
+                profiles: cigaretteProfiles,
+                context: modelContext
+            )
+        default:
+            return viewModel.addNicotine(
+                product: entry.product,
+                quantity: entry.quantity,
+                unit: entry.unit,
+                context: modelContext
+            )
+        }
+    }
+
     private var cigaretteSummary: CigaretteIntelligenceSummary {
         let detailsByEntry = Dictionary(uniqueKeysWithValues: cigaretteDetails.map { ($0.nicotineEntryID, $0) })
         let preference = cigarettePreference
@@ -337,7 +383,12 @@ struct HomeView: View {
             _ = viewModel.addDrink(
                 name: entry.drinkName,
                 caffeineMG: entry.caffeineMG,
-                context: modelContext
+                drink: drinks.first {
+                    $0.name == entry.drinkName
+                        && abs($0.caffeineMG - entry.caffeineMG) < 0.01
+                },
+                context: modelContext,
+                actionKind: .loggedAgain
             )
         case .nicotine(let entry):
             _ = viewModel.addNicotine(
@@ -345,7 +396,8 @@ struct HomeView: View {
                 quantity: entry.quantity,
                 unit: entry.unit,
                 note: entry.note,
-                context: modelContext
+                context: modelContext,
+                actionKind: .loggedAgain
             )
         }
     }
@@ -472,6 +524,8 @@ private struct HomeEmptyStateCard: View {
     .environment(SleepScheduleStore())
     .environment(CaffeineSensitivityStore())
     .environment(QuickAddCoordinator())
+    .environment(RecentActionStore())
+    .environment(NotificationPreferencesStore())
     .modelContainer(
             for: [
                 CaffeineEntry.self,

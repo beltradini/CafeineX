@@ -37,6 +37,17 @@ struct ProfileView: View {
 
                 Section("Personalization") {
                     NavigationLink {
+                        NotificationSettingsView()
+                    } label: {
+                        settingsRow(
+                            title: "Notifications",
+                            subtitle: "Optional reminders",
+                            symbol: "bell.badge",
+                            tint: CXTheme.healthAccent
+                        )
+                    }
+
+                    NavigationLink {
                         GuidanceSettingsView(
                             sleepScheduleStore: sleepScheduleStore,
                             sensitivityStore: sensitivityStore

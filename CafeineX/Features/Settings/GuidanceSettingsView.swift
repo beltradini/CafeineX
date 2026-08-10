@@ -1,8 +1,17 @@
+import SwiftData
 import SwiftUI
 
 struct GuidanceSettingsView: View {
     let sleepScheduleStore: SleepScheduleStore
     let sensitivityStore: CaffeineSensitivityStore
+
+    @Environment(NotificationPreferencesStore.self)
+    private var notificationStore
+
+    @Query(sort: \Drink.name)
+    private var drinks: [Drink]
+
+    private let notificationScheduler = NotificationScheduler()
 
     var body: some View {
         Form {
@@ -57,14 +66,20 @@ struct GuidanceSettingsView: View {
     private var bedtimeBinding: Binding<Date> {
         Binding(
             get: { sleepScheduleStore.bedtimeDate() },
-            set: { sleepScheduleStore.setBedtime($0) }
+                        set: {
+                            sleepScheduleStore.setBedtime($0)
+                            rescheduleNotifications()
+                        }
         )
     }
 
     private var cutoffBinding: Binding<Int> {
         Binding(
             get: { sleepScheduleStore.schedule.cutoffHoursBeforeBedtime },
-            set: { sleepScheduleStore.setCutoffHoursBeforeBedtime($0) }
+            set: {
+                sleepScheduleStore.setCutoffHoursBeforeBedtime($0)
+                rescheduleNotifications()
+            }
         )
     }
 
@@ -74,6 +89,20 @@ struct GuidanceSettingsView: View {
             set: { sensitivityStore.setProfile($0) }
         )
     }
+
+    private func rescheduleNotifications() {
+        Task { @MainActor in
+            let selectedDrink = drinks.first {
+                $0.id == notificationStore.preferences.habitualDrinkID
+            }
+
+            try? await notificationScheduler.reschedule(
+                preferences: notificationStore.preferences,
+                sleepSchedule: sleepScheduleStore.schedule,
+                drinkName: selectedDrink?.name
+            )
+        }
+    }
 }
 
 #Preview {
@@ -82,5 +111,6 @@ struct GuidanceSettingsView: View {
             sleepScheduleStore: SleepScheduleStore(),
             sensitivityStore: CaffeineSensitivityStore()
         )
+        .environment(NotificationPreferencesStore())
     }
 }

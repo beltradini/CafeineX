@@ -4,6 +4,11 @@ struct HomeQuickAddView: View {
     let favoriteDrinks: [Drink]
     let addDrink: (Drink) -> Void
     let openQuickAdd: (QuickAddKind) -> Void
+    let nicotineProduct: NicotineProduct
+    let nicotineQuantity: Double
+    let logNicotine: () -> Bool
+
+    @State private var isLoggingNicotine = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -69,6 +74,63 @@ struct HomeQuickAddView: View {
                         }
                     }
                 }
+            }
+
+            nicotineQuickAction
+        }
+    }
+
+    private var nicotineQuickAction: some View {
+        Button {
+            guard !isLoggingNicotine else { return }
+            isLoggingNicotine = true
+            _ = logNicotine()
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                isLoggingNicotine = false
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: nicotineProduct.symbol)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(CXTheme.nicotineAccent)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Log nicotine")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Text("\(nicotineProduct.title) · \(nicotineQuantity.formatted(.number.precision(.fractionLength(0...1))))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(CXTheme.nicotineAccent)
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 64)
+            .background(CXTheme.nicotineAccent.opacity(0.14), in: RoundedRectangle(cornerRadius: CXTheme.smallCornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: CXTheme.smallCornerRadius)
+                    .stroke(CXTheme.nicotineAccent.opacity(0.28), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoggingNicotine)
+        .accessibilityLabel("Log \(nicotineProduct.title), \(nicotineQuantity.formatted(.number.precision(.fractionLength(0...1))))")
+        .accessibilityHint("Records your usual nicotine exposure now")
+        .accessibilityIdentifier("home-quick-log-nicotine-button")
+        .contextMenu {
+            Button {
+                openQuickAdd(.nicotine)
+            } label: {
+                Label("Customize nicotine", systemImage: "slider.horizontal.3")
             }
         }
     }

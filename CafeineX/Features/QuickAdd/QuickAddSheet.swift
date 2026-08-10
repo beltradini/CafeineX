@@ -32,6 +32,8 @@ struct QuickAddSheet: View {
 
     @AppStorage("lastCaffeineDrinkID") private var lastCaffeineDrinkIDString: String?
     @AppStorage("lastNicotineProductRawValue") private var lastNicotineProductRawValue: String = NicotineProduct.cigarette.rawValue
+    @AppStorage("lastNicotineQuantity") private var lastNicotineQuantity: Double = 1
+    @AppStorage("lastNicotineUnitRawValue") private var lastNicotineUnitRawValue: String = NicotineUnit.pieces.rawValue
 
     @State private var kind: QuickAddKind
     @State private var caffeineName = "Espresso"
@@ -150,6 +152,13 @@ struct QuickAddSheet: View {
                 } else {
                     nicotineProduct = .cigarette
                 }
+                nicotineQuantity = lastNicotineQuantity
+                if let restoredUnit = NicotineUnit(rawValue: lastNicotineUnitRawValue),
+                   nicotineProduct.allowedUnits.contains(restoredUnit) {
+                    nicotineUnit = restoredUnit
+                } else {
+                    nicotineUnit = nicotineProduct.defaultUnit
+                }
 
                 selectedCigaretteProfileID = activeCigaretteProfiles.first?.id
                 isExpanded = false
@@ -203,6 +212,32 @@ struct QuickAddSheet: View {
 
                 Section {
                     Button {
+                        saveQuickNicotine()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Log \(nicotineProduct.title)")
+                                    .font(.headline)
+                                Text("\(nicotineQuantity.formatted(.number.precision(.fractionLength(0...1)))) \(nicotineUnit.title.lowercased()) · Now")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: nicotineProduct.symbol)
+                                .foregroundStyle(CXTheme.nicotineAccent)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(CXTheme.nicotineAccent)
+                    .accessibilityHint("Records your usual nicotine exposure now")
+                    .accessibilityIdentifier("quick-add-log-nicotine-button")
+                } header: {
+                    Text("Quick log")
+                }
+
+                Section {
+                    Button {
                         withAnimation(.snappy) {
                             isExpanded = true
                         }
@@ -215,7 +250,7 @@ struct QuickAddSheet: View {
                             kind = .nicotine
                         }
                     } label: {
-                        Label("Log nicotine instead", systemImage: "waveform.path.ecg")
+                        Label("More nicotine options", systemImage: "waveform.path.ecg")
                     }
                     .tint(CXTheme.nicotineAccent)
                 }
@@ -462,10 +497,33 @@ struct QuickAddSheet: View {
             )
             if didSave {
                 lastNicotineProductRawValue = nicotineProduct.rawValue
+                lastNicotineQuantity = nicotineQuantity
+                lastNicotineUnitRawValue = nicotineUnit.rawValue
             }
         }
 
         if didSave {
+            dismiss()
+        }
+    }
+
+    private func saveQuickNicotine() {
+        let didSave = onSave(
+            .nicotine(
+                product: nicotineProduct,
+                quantity: nicotineQuantity,
+                unit: nicotineUnit,
+                date: .now,
+                note: nil,
+                cigaretteProfileID: nicotineProduct == .cigarette ? selectedCigaretteProfileID : nil,
+                cigaretteContext: nicotineProduct == .cigarette ? cigaretteContext : nil
+            )
+        )
+
+        if didSave {
+            lastNicotineProductRawValue = nicotineProduct.rawValue
+            lastNicotineQuantity = nicotineQuantity
+            lastNicotineUnitRawValue = nicotineUnit.rawValue
             dismiss()
         }
     }

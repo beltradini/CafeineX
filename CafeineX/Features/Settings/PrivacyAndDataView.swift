@@ -10,6 +10,8 @@ struct PrivacyAndDataView: View {
     @Environment(SleepScheduleStore.self) private var sleepScheduleStore
     @Environment(CaffeineSensitivityStore.self) private var sensitivityStore
     @Environment(AppearanceStore.self) private var appearanceStore
+    @Environment(NotificationPreferencesStore.self) private var notificationStore
+    @Environment(RecentActionStore.self) private var recentActionStore
 
     @Query private var caffeineEntries: [CaffeineEntry]
     @Query private var nicotineEntries: [NicotineEntry]
@@ -22,6 +24,7 @@ struct PrivacyAndDataView: View {
     @State private var isDeleting = false
     @State private var isShowingResult = false
     @State private var resultMessage = ""
+    private let notificationScheduler = NotificationScheduler()
 
     var body: some View {
         Form {
@@ -167,6 +170,9 @@ struct PrivacyAndDataView: View {
                 deleteOwnedHealthKitSamples: deleteOwnedHealthKitSamples
             )
             viewModel.resetAfterDataDeletion()
+            notificationStore.reset()
+            notificationScheduler.cancelAll()
+            recentActionStore.removeAll()
             resultMessage = successMessage(for: result)
             deleteOwnedHealthKitSamples = false
         } catch {

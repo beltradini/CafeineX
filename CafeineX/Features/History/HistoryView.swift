@@ -475,6 +475,8 @@ struct HistoryView: View {
     }
     .environment(QuickAddCoordinator())
     .environment(PersistenceIssueCenter())
+    .environment(RecentActionStore())
+    .environment(NotificationPreferencesStore())
     .modelContainer(
         for: [
             CaffeineEntry.self,

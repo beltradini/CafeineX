@@ -327,6 +327,8 @@ struct SearchView: View {
     .environment(SleepScheduleStore())
     .environment(CaffeineSensitivityStore())
     .environment(AppearanceStore())
+    .environment(RecentActionStore())
+    .environment(NotificationPreferencesStore())
     .modelContainer(
         for: [
             CaffeineEntry.self,

@@ -94,6 +94,33 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testFavoriteDrinkLogsDirectlyAndAppearsInRecentActions() throws {
+        let app = makeApp()
+        app.launch()
+
+        let espresso = app.buttons["Add Espresso, 64 milligrams"].firstMatch
+        XCTAssertTrue(espresso.waitForExistence(timeout: 8))
+        espresso.tap()
+
+        let actions = app.descendants(matching: .any)["recent-actions-card"].firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Logged Espresso"].exists)
+    }
+
+    @MainActor
+    func testUsualNicotineLogsFromHomeWithOneTap() throws {
+        let app = makeApp()
+        app.launch()
+
+        let nicotine = app.buttons["home-quick-log-nicotine-button"].firstMatch
+        XCTAssertTrue(nicotine.waitForExistence(timeout: 8))
+        nicotine.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["recent-actions-card"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Logged cigarette"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testWelcomeOnboardingCanBeCompleted() throws {
         let app = makeApp()
         app.launchArguments.append("-show-onboarding")

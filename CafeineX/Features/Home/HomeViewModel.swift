@@ -41,6 +41,7 @@ final class HomeViewModel {
     }
 
     private var engine: CaffeineEngine
+    private var recentActions: RecentActionStore?
     private var sleepSchedule: SleepSchedule = .default
     private let healthKitService: any HealthKitProviding
     private let persistenceIssueCenter: PersistenceIssueCenter?
@@ -64,8 +65,12 @@ final class HomeViewModel {
     var isLoadingSleep = false
     var feedback: Feedback?
 
-    init(persistenceIssueCenter: PersistenceIssueCenter? = nil) {
+    init(
+        persistenceIssueCenter: PersistenceIssueCenter? = nil,
+        recentActions: RecentActionStore? = nil
+    ) {
         self.engine = CaffeineEngine()
+        self.recentActions = recentActions
         self.healthKitService = HealthKitService()
         self.persistenceIssueCenter = persistenceIssueCenter
         refreshHealthAccessState()
@@ -74,11 +79,13 @@ final class HomeViewModel {
     init(
         engine: CaffeineEngine,
         healthKitService: any HealthKitProviding,
-        persistenceIssueCenter: PersistenceIssueCenter? = nil
+        persistenceIssueCenter: PersistenceIssueCenter? = nil,
+        recentActions: RecentActionStore? = nil
     ) {
         self.engine = engine
         self.healthKitService = healthKitService
         self.persistenceIssueCenter = persistenceIssueCenter
+        self.recentActions = recentActions
         refreshHealthAccessState()
     }
 
@@ -89,6 +96,10 @@ final class HomeViewModel {
         self.entries = entries
         self.nicotineEntries = nicotineEntries
         recalculateStatus()
+    }
+
+    func attachRecentActionStore(_ store: RecentActionStore) {
+        recentActions = store
     }
 
     func updatePreferences(
@@ -235,7 +246,8 @@ final class HomeViewModel {
         caffeineMG: Double,
         consumedAt: Date = .now,
         drink: Drink? = nil,
-        context: ModelContext
+        context: ModelContext,
+        actionKind: RecentActionKind = .logged
     ) -> Bool {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty, caffeineMG.isFinite, caffeineMG > 0, caffeineMG <= 1_000 else {
@@ -295,10 +307,17 @@ final class HomeViewModel {
             }
         }
         recalculateStatus()
+        recentActions?.record(
+            kind: actionKind,
+            title: "\(actionKind.titlePrefix) \(normalizedName)",
+            detail: "\(Int(caffeineMG.rounded())) mg",
+            relatedEntryID: entry.id,
+            occurredAt: entry.consumedAt
+        )
         presentFeedback(
             Feedback(
                 entryID: entry.id,
-                message: "\(normalizedName) added",
+                message: "\(actionKind.titlePrefix) \(normalizedName)",
                 kind: .caffeine
             )
         )
@@ -320,6 +339,9 @@ final class HomeViewModel {
               entry.source != .healthKit else {
             return false
         }
+
+        let undoneTitle = entry.drinkName
+        let undoneDetail = "\(Int(entry.caffeineMG.rounded())) mg"
 
         pendingHealthWrites[entry.id]?.cancel()
         pendingHealthWrites[entry.id] = nil
@@ -362,6 +384,12 @@ final class HomeViewModel {
         }
 
         entries.removeAll { $0.id == entry.id }
+        recentActions?.record(
+            kind: .undone,
+            title: "Undid \(undoneTitle)",
+            detail: undoneDetail,
+            relatedEntryID: entry.id
+        )
         self.feedback = nil
         recalculateStatus()
         return true
@@ -407,7 +435,8 @@ final class HomeViewModel {
         unit: NicotineUnit,
         usedAt: Date = .now,
         note: String? = nil,
-        context: ModelContext
+        context: ModelContext,
+        actionKind: RecentActionKind = .logged
     ) -> Bool {
         guard product.allowedUnits.contains(unit),
               quantity.isFinite,
@@ -442,10 +471,17 @@ final class HomeViewModel {
         nicotineEntries.append(entry)
         nicotineEntries.sort { $0.usedAt > $1.usedAt }
         recalculateStatus()
+        recentActions?.record(
+            kind: actionKind,
+            title: "\(actionKind.titlePrefix) \(product.title)",
+            detail: unit.formatted(quantity: quantity),
+            relatedEntryID: entry.id,
+            occurredAt: entry.usedAt
+        )
         presentFeedback(
             Feedback(
                 entryID: entry.id,
-                message: "\(product.title) added",
+                message: "\(actionKind.titlePrefix) \(product.title)",
                 kind: .nicotine
             )
         )
@@ -460,7 +496,8 @@ final class HomeViewModel {
         cigaretteContext: CigaretteContext? = nil,
         note: String? = nil,
         profiles: [CigaretteProfile] = [],
-        context: ModelContext
+        context: ModelContext,
+        actionKind: RecentActionKind = .logged
     ) -> Bool {
         guard quantity.isFinite, (0.1...100).contains(quantity) else {
             healthMessage = "Enter a cigarette count between 0.1 and 100."
@@ -500,10 +537,17 @@ final class HomeViewModel {
         nicotineEntries.append(entry)
         nicotineEntries.sort { $0.usedAt > $1.usedAt }
         recalculateStatus()
+        recentActions?.record(
+            kind: actionKind,
+            title: "\(actionKind.titlePrefix) cigarette",
+            detail: "\(quantity.formatted(.number.precision(.fractionLength(0...1)))) pieces",
+            relatedEntryID: entry.id,
+            occurredAt: entry.usedAt
+        )
         presentFeedback(
             Feedback(
                 entryID: entry.id,
-                message: "Cigarette logged",
+                message: "\(actionKind.titlePrefix) cigarette",
                 kind: .nicotine
             )
         )
@@ -519,6 +563,8 @@ final class HomeViewModel {
             return false
         }
         let identifier = entry.id
+        let undoneTitle = entry.product.title
+        let undoneDetail = entry.unit.formatted(quantity: entry.quantity)
         let descriptor = FetchDescriptor<CigaretteEventDetails>(
             predicate: #Predicate { $0.nicotineEntryID == identifier }
         )
@@ -556,6 +602,12 @@ final class HomeViewModel {
             return false
         }
         nicotineEntries.removeAll { $0.id == identifier }
+        recentActions?.record(
+            kind: .undone,
+            title: "Undid \(undoneTitle)",
+            detail: undoneDetail,
+            relatedEntryID: identifier
+        )
         self.feedback = nil
         recalculateStatus()
         return true

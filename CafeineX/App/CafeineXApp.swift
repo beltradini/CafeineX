@@ -19,6 +19,8 @@ struct CafeineXApp: App {
     @State private var sleepScheduleStore = SleepScheduleStore()
     @State private var sensitivityStore = CaffeineSensitivityStore()
     @State private var appearanceStore = AppearanceStore()
+    @State private var notificationPreferencesStore = NotificationPreferencesStore()
+    @State private var recentActionStore = RecentActionStore()
 
     var body: some Scene {
         WindowGroup {
@@ -44,6 +46,8 @@ struct CafeineXApp: App {
                 .environment(sleepScheduleStore)
                 .environment(sensitivityStore)
                 .environment(appearanceStore)
+                .environment(notificationPreferencesStore)
+                .environment(recentActionStore)
                 .modelContainer(container)
 
             case .unavailable(let failure):
