@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9D0D5C6A302A83D600719BC1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D0D5C69302A83D600719BC1 /* WidgetKit.framework */; };
+		9D0D5C6C302A83D700719BC1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D0D5C6B302A83D700719BC1 /* SwiftUI.framework */; };
+		9D0D5C77302A83D900719BC1 /* CafeineXWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9D0D5C67302A83D600719BC1 /* CafeineXWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9D0D5C7E302A845F00719BC1 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D0D5C7D302A845F00719BC1 /* AppIntents.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9D01A80F2FC3AD3500B0709A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,13 +28,56 @@
 			remoteGlobalIDString = 9D01A7FE2FC3AD3200B0709A;
 			remoteInfo = CafeineX;
 		};
+		9D0D5C75302A83D900719BC1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D01A7F72FC3AD3200B0709A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D0D5C66302A83D600719BC1;
+			remoteInfo = CafeineXWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9D0D5C78302A83D900719BC1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9D0D5C77302A83D900719BC1 /* CafeineXWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9D01A7FF2FC3AD3200B0709A /* CafeineX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CafeineX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D01A80E2FC3AD3500B0709A /* CafeineXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CafeineXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D01A8182FC3AD3500B0709A /* CafeineXUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CafeineXUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D0D5C67302A83D600719BC1 /* CafeineXWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CafeineXWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D0D5C69302A83D600719BC1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		9D0D5C6B302A83D700719BC1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		9D0D5C7D302A845F00719BC1 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		9D0D5C86302A916A00719BC1 /* CafeineXWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CafeineXWidgetsExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9D0D5C7B302A83D900719BC1 /* Exceptions for "CafeineXWidgets" folder in "CafeineXWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9D0D5C66302A83D600719BC1 /* CafeineXWidgetsExtension */;
+		};
+		9DE20C5C302B7D5A00C0B41C /* Exceptions for "CafeineXWidgets" folder in "CafeineX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CafeineXWidgets.swift,
+			);
+			target = 9D01A7FE2FC3AD3200B0709A /* CafeineX */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9D01A8012FC3AD3200B0709A /* CafeineX */ = {
@@ -43,6 +93,20 @@
 		9D01A81B2FC3AD3500B0709A /* CafeineXUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CafeineXUITests;
+			sourceTree = "<group>";
+		};
+		9D0D5C6D302A83D700719BC1 /* CafeineXWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9DE20C5C302B7D5A00C0B41C /* Exceptions for "CafeineXWidgets" folder in "CafeineX" target */,
+				9D0D5C7B302A83D900719BC1 /* Exceptions for "CafeineXWidgets" folder in "CafeineXWidgetsExtension" target */,
+			);
+			path = CafeineXWidgets;
+			sourceTree = "<group>";
+		};
+		9D0D5C9A302A916A00719BC1 /* CafeineX/Shared/Widgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CafeineX/Shared/Widgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,16 +133,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9D0D5C64302A83D600719BC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D0D5C6C302A83D700719BC1 /* SwiftUI.framework in Frameworks */,
+				9D0D5C6A302A83D600719BC1 /* WidgetKit.framework in Frameworks */,
+				9D0D5C7E302A845F00719BC1 /* AppIntents.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		9D01A7F62FC3AD3200B0709A = {
 			isa = PBXGroup;
 			children = (
+				9D0D5C86302A916A00719BC1 /* CafeineXWidgetsExtension.entitlements */,
 				9D01A8012FC3AD3200B0709A /* CafeineX */,
 				9D01A8112FC3AD3500B0709A /* CafeineXTests */,
 				9D01A81B2FC3AD3500B0709A /* CafeineXUITests */,
+				9D0D5C6D302A83D700719BC1 /* CafeineXWidgets */,
+				9D0D5C68302A83D600719BC1 /* Frameworks */,
 				9D01A8002FC3AD3200B0709A /* Products */,
+				9DE20C5D302B82D600C0B41C /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,8 +166,27 @@
 				9D01A7FF2FC3AD3200B0709A /* CafeineX.app */,
 				9D01A80E2FC3AD3500B0709A /* CafeineXTests.xctest */,
 				9D01A8182FC3AD3500B0709A /* CafeineXUITests.xctest */,
+				9D0D5C67302A83D600719BC1 /* CafeineXWidgetsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9D0D5C68302A83D600719BC1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9D0D5C7D302A845F00719BC1 /* AppIntents.framework */,
+				9D0D5C69302A83D600719BC1 /* WidgetKit.framework */,
+				9D0D5C6B302A83D700719BC1 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9DE20C5D302B82D600C0B41C /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				9D0D5C9A302A916A00719BC1 /* CafeineX/Shared/Widgets */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,10 +199,12 @@
 				9D01A7FB2FC3AD3200B0709A /* Sources */,
 				9D01A7FC2FC3AD3200B0709A /* Frameworks */,
 				9D01A7FD2FC3AD3200B0709A /* Resources */,
+				9D0D5C78302A83D900719BC1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				9D0D5C76302A83D900719BC1 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9D01A8012FC3AD3200B0709A /* CafeineX */,
@@ -163,6 +262,29 @@
 			productReference = 9D01A8182FC3AD3500B0709A /* CafeineXUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		9D0D5C66302A83D600719BC1 /* CafeineXWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D0D5C7C302A83D900719BC1 /* Build configuration list for PBXNativeTarget "CafeineXWidgetsExtension" */;
+			buildPhases = (
+				9D0D5C63302A83D600719BC1 /* Sources */,
+				9D0D5C64302A83D600719BC1 /* Frameworks */,
+				9D0D5C65302A83D600719BC1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9D0D5C6D302A83D700719BC1 /* CafeineXWidgets */,
+				9D0D5C9A302A916A00719BC1 /* CafeineX/Shared/Widgets */,
+			);
+			name = CafeineXWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = CafeineXWidgetsExtension;
+			productReference = 9D0D5C67302A83D600719BC1 /* CafeineXWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -170,7 +292,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2650;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					9D01A7FE2FC3AD3200B0709A = {
@@ -183,6 +305,9 @@
 					9D01A8172FC3AD3500B0709A = {
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = 9D01A7FE2FC3AD3200B0709A;
+					};
+					9D0D5C66302A83D600719BC1 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -203,6 +328,7 @@
 				9D01A7FE2FC3AD3200B0709A /* CafeineX */,
 				9D01A80D2FC3AD3500B0709A /* CafeineXTests */,
 				9D01A8172FC3AD3500B0709A /* CafeineXUITests */,
+				9D0D5C66302A83D600719BC1 /* CafeineXWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +349,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9D01A8162FC3AD3500B0709A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D0D5C65302A83D600719BC1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +386,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9D0D5C63302A83D600719BC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +405,11 @@
 			isa = PBXTargetDependency;
 			target = 9D01A7FE2FC3AD3200B0709A /* CafeineX */;
 			targetProxy = 9D01A8192FC3AD3500B0709A /* PBXContainerItemProxy */;
+		};
+		9D0D5C76302A83D900719BC1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D0D5C66302A83D600719BC1 /* CafeineXWidgetsExtension */;
+			targetProxy = 9D0D5C75302A83D900719BC1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -406,6 +551,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CafeineX;
+				INFOPLIST_KEY_CFBundleURLTypes = "({ CFBundleURLName = beltradini.CafeineX; CFBundleURLSchemes = (cafeinex); })";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
@@ -421,6 +567,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -447,6 +594,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CafeineX;
+				INFOPLIST_KEY_CFBundleURLTypes = "({ CFBundleURLName = beltradini.CafeineX; CFBundleURLSchemes = (cafeinex); })";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "CafeineX reads dietary caffeine and recent sleep analysis to complete your timeline and show on-device timing context.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "CafeineX writes caffeine intake to Apple Health to keep your health data synchronized.";
@@ -462,6 +610,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -489,6 +638,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineXTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -511,6 +664,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineXTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -531,6 +688,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineXUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -551,12 +712,92 @@
 				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineXUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = CafeineX;
+			};
+			name = Release;
+		};
+		9D0D5C79302A83D900719BC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = CafeineXWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z596R45PA8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CafeineXWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CafeineXWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX.CafeineXWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9D0D5C7A302A83D900719BC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = CafeineXWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Z596R45PA8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CafeineXWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CafeineXWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = beltradini.CafeineX.CafeineXWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -595,6 +836,15 @@
 			buildConfigurations = (
 				9D01A8292FC3AD3500B0709A /* Debug */,
 				9D01A82A2FC3AD3500B0709A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D0D5C7C302A83D900719BC1 /* Build configuration list for PBXNativeTarget "CafeineXWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D0D5C79302A83D900719BC1 /* Debug */,
+				9D0D5C7A302A83D900719BC1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

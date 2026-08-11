@@ -14,8 +14,10 @@ struct AppShellView: View {
     @Environment(SleepScheduleStore.self) private var sleepScheduleStore
     @Environment(NotificationPreferencesStore.self) private var notificationPreferencesStore
     @Environment(RecentActionStore.self) private var recentActionStore
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var drinks: [Drink]
     @Query private var cigaretteProfiles: [CigaretteProfile]
+    @Query private var caffeineEntries: [CaffeineEntry]
 
     @Bindable var persistenceIssueCenter: PersistenceIssueCenter
 
@@ -62,8 +64,26 @@ struct AppShellView: View {
         .tabViewStyle(.sidebarAdaptable)
         .environment(persistenceIssueCenter)
         .environment(quickAddCoordinator)
+        .onOpenURL { url in
+            switch url.host {
+            case "history":
+                selectedTab = .history
+            case "quick-add":
+                selectedTab = .home
+                quickAddCoordinator.present()
+            default:
+                break
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+
+            consumeWidgetCommands()
+
+        }
         .task {
             homeViewModel.attachRecentActionStore(recentActionStore)
+            consumeWidgetCommands()
             await refreshNotifications()
         }
         .sheet(isPresented: $quickAddCoordinator.isPresented) {
@@ -147,6 +167,47 @@ struct AppShellView: View {
             sleepSchedule: sleepScheduleStore.schedule,
             drinkName: selectedDrink?.name
         )
+    }
+
+    // MARK: - Widget Command
+
+    private func consumeWidgetCommands() {
+        var didChange = false
+
+        for command in WidgetCommandStore.pendingDrinkCommands() {
+            let alreadySaved = caffeineEntries.contains { entry in
+                entry.source == .widget
+                    && entry.drinkName == command.name
+                    && abs(entry.caffeineMG - command.caffeineMG) < 0.01
+                    && abs(entry.consumedAt.timeIntervalSince(command.createdAt)) < 0.01
+            }
+            if alreadySaved {
+                WidgetCommandStore.acknowledgeDrinkCommand(id: command.id)
+                continue
+            }
+
+            let matchedDrink = drinks.first {
+                $0.name == command.name
+                    && abs($0.caffeineMG - command.caffeineMG) < 0.01
+            }
+
+            let didSave = homeViewModel.addDrink(
+                name: command.name,
+                caffeineMG: command.caffeineMG,
+                consumedAt: command.createdAt,
+                drink: matchedDrink,
+                context: modelContext,
+                source: .widget
+            )
+            guard didSave else { break }
+
+            WidgetCommandStore.acknowledgeDrinkCommand(id: command.id)
+            didChange = true
+        }
+
+        if didChange {
+            CafeineXWidgetStore.reloadTimelines()
+        }
     }
 }
 

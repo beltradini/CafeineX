@@ -188,21 +188,32 @@ struct HomeView: View {
             if viewModel.healthAccessState != .notRequested {
                 await viewModel.synchronizeHealthKit(context: modelContext)
             }
+
+            updateWidgetSnapshot()
         }
         .onChange(of: timelineSignature) {
             viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
+
+            updateWidgetSnapshot()
+        }
+        .onChange(of: favoriteDrinkSignature) {
+            updateWidgetSnapshot()
         }
         .onChange(of: sleepScheduleStore.schedule) { _, schedule in
             viewModel.updatePreferences(
                 sleepSchedule: schedule,
                 sensitivity: sensitivityStore.profile
             )
+
+            updateWidgetSnapshot()
         }
         .onChange(of: sensitivityStore.profile) { _, sensitivity in
             viewModel.updatePreferences(
                 sleepSchedule: sleepScheduleStore.schedule,
                 sensitivity: sensitivity
             )
+
+            updateWidgetSnapshot()
         }
     }
 
@@ -256,6 +267,12 @@ struct HomeView: View {
                 return (lhsDetails?.lastUsedAt ?? .distantPast)
                     > (rhsDetails?.lastUsedAt ?? .distantPast)
             }
+    }
+
+    private var favoriteDrinkSignature: [String] {
+        favoriteDrinks.map {
+            "\($0.id)|\($0.name)|\($0.caffeineMG)|\($0.categoryRawValue)"
+        }
     }
 
     private var cigarettePreference: CigarettePreferences? {
@@ -452,6 +469,101 @@ struct HomeView: View {
             sleepSchedule: sleepScheduleStore.schedule,
             sensitivity: sensitivityStore.profile
         )
+    }
+
+    // MARK: - Widget Snapshot
+
+    private func updateWidgetSnapshot() {
+        let now = Date.now
+        let calendar = Calendar.current
+
+        let status = viewModel.status
+
+        let state: WidgetWindowState
+        if entries.isEmpty {
+            state = .noRecentData
+        } else if let cutoffTime = status?.suggestedCutoffTime,
+                  now >= cutoffTime {
+            state = .nearSleep
+        } else {
+            state = .withinWindow
+        }
+
+        let recentExposures = allItems
+            .filter { $0.date <= now }
+            .sorted { $0.date > $1.date }
+            .prefix(4)
+            .map { item in
+                WidgetExposure(
+                    id: item.modelID,
+                    kind: item.kind == .caffeine ? .caffeine : .nicotine,
+                    title: item.title,
+                    amountText: item.amountText,
+                    date: item.date,
+                    symbolName: item.symbol
+                )
+            }
+
+        let favorites = favoriteDrinks
+            .prefix(4)
+            .map { drink in
+                WidgetFavoriteDrink(
+                    id: drink.id,
+                    name: drink.name,
+                    caffeineMG: drink.caffeineMG,
+                    symbolName: drink.category.symbol
+                )
+            }
+
+        let fallbackBedtime = sleepScheduleStore.schedule.nextBedtime(
+            relativeTo: now,
+            calendar: calendar
+        )
+        let fallbackCutoff = calendar.date(
+            byAdding: .hour,
+            value: -sleepScheduleStore.schedule.cutoffHoursBeforeBedtime,
+            to: fallbackBedtime
+        ) ?? fallbackBedtime
+
+        let targetBedtime = status?.targetBedtime ?? fallbackBedtime
+        let activeRangePoints: [WidgetActiveRangePoint]
+        if entries.isEmpty {
+            activeRangePoints = []
+        } else {
+            let engine = CaffeineEngine(configuration: .init(
+                sleepSchedule: sleepScheduleStore.schedule,
+                sensitivity: sensitivityStore.profile
+            ))
+            let duration = max(targetBedtime.timeIntervalSince(now), 0)
+            activeRangePoints = (0...6).map { index in
+                let date = now.addingTimeInterval(
+                    duration * Double(index) / 6
+                )
+                let range = engine.estimateActiveCaffeineRange(
+                    doses: entries.map(\.dose),
+                    currentDate: date
+                )
+                return WidgetActiveRangePoint(
+                    date: date,
+                    lowMG: range.lowerBound,
+                    highMG: range.upperBound
+                )
+            }
+        }
+
+        let snapshot = CafeineXWidgetSnapshot(
+            generatedAt: now,
+            activeCaffeineLowMG: status?.activeCaffeineLowMG,
+            activeCaffeineHighMG: status?.activeCaffeineHighMG,
+            caffeineTodayMG: status?.consumedTodayMG ?? 0,
+            bedtime: targetBedtime,
+            cutoffTime: status?.suggestedCutoffTime ?? fallbackCutoff,
+            state: state,
+            recentExposures: recentExposures,
+            favoriteDrinks: favorites,
+            activeRangePoints: activeRangePoints
+        )
+        CafeineXWidgetStore.saveSnapshot(snapshot)
     }
 }
 

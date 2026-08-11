@@ -247,7 +247,8 @@ final class HomeViewModel {
         consumedAt: Date = .now,
         drink: Drink? = nil,
         context: ModelContext,
-        actionKind: RecentActionKind = .logged
+        actionKind: RecentActionKind = .logged,
+        source: CaffeineSource = .manual
     ) -> Bool {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty, caffeineMG.isFinite, caffeineMG > 0, caffeineMG <= 1_000 else {
@@ -259,7 +260,7 @@ final class HomeViewModel {
             drinkName: normalizedName,
             caffeineMG: caffeineMG,
             consumedAt: min(consumedAt, .now),
-            source: .manual
+            source: source
         )
         let outboxItem = HealthSyncOutboxItem(entryID: entry.id)
 
