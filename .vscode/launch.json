@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open in Xcode",
+      "type": "shell",
+      "request": "launch",
+      "command": "open",
+      "args": [
+        "${workspaceFolder}/CafeineX.xcodeproj"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false
+      }
+    }
+  ]
+}

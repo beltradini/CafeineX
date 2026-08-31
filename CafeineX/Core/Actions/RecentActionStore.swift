@@ -11,6 +11,8 @@ import Observation
 @MainActor
 @Observable
 final class RecentActionStore {
+    static let shared = RecentActionStore()
+
     private let defaults: UserDefaults
     private let storageKey = "cafeinex.recentActions"
 

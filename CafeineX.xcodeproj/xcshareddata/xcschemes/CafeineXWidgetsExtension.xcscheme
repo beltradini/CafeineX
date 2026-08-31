@@ -18,6 +18,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "9D0D5C66302A83D600719BC1"
                BuildableName = "CafeineXWidgetsExtension.appex"
+               BlueprintName = "CafeineXWidgetsExtension"
                ReferencedContainer = "container:CafeineX.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,6 +32,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "9D01A7FE2FC3AD3200B0709A"
                BuildableName = "CafeineX.app"
+               BlueprintName = "CafeineX"
                ReferencedContainer = "container:CafeineX.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9D01A7FE2FC3AD3200B0709A"
             BuildableName = "CafeineX.app"
+            BlueprintName = "CafeineX"
             ReferencedContainer = "container:CafeineX.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -97,6 +100,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9D01A7FE2FC3AD3200B0709A"
             BuildableName = "CafeineX.app"
+            BlueprintName = "CafeineX"
             ReferencedContainer = "container:CafeineX.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

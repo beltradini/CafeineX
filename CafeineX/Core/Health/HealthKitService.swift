@@ -120,18 +120,22 @@ final class HealthKitService: HealthKitProviding {
             metadata: [
                 MetadataKey.appEntryID: appEntryID.uuidString,
                 MetadataKey.displayName: displayName,
+                HKMetadataKeySyncIdentifier: appEntryID.uuidString,
+                HKMetadataKeySyncVersion: NSNumber(value: 1),
             ]
         )
 
         try await healthStore.save(sample)
 
-        return HealthCaffeineSample(
-            id: sample.uuid,
-            milligrams: milligrams,
-            consumedAt: date,
-            appEntryID: appEntryID,
-            displayName: displayName
+        // HealthKit may ignore a same-version retry. Return the actual stored
+        // UUID, never the UUID of a newly allocated but discarded sample.
+        let stored = try await fetchCaffeineSamples(
+            from: date.addingTimeInterval(-1), to: date.addingTimeInterval(1)
         )
+        guard let result = stored.first(where: { $0.appEntryID == appEntryID }) else {
+            throw HealthKitError.caffeineLinkUnavailable
+        }
+        return result
     }
 
     func fetchCaffeineSamples(

@@ -7,9 +7,15 @@
 
 import SwiftData
 import SwiftUI
+import AppIntents
 
 @main
 struct CafeineXApp: App {
+
+    init() {
+        CafeineXShortcuts.updateAppShortcutParameters()
+    }
+
     @AppStorage(CafeineXOnboarding.completionKey) private var hasCompletedOnboarding = false
     @AppStorage(CafeineXWhatsNew.completionKey) private var hasSeenWhatsNew = false
     @State private var persistenceController = CafeineXPersistenceController(
@@ -20,7 +26,7 @@ struct CafeineXApp: App {
     @State private var sensitivityStore = CaffeineSensitivityStore()
     @State private var appearanceStore = AppearanceStore()
     @State private var notificationPreferencesStore = NotificationPreferencesStore()
-    @State private var recentActionStore = RecentActionStore()
+    @State private var recentActionStore = RecentActionStore.shared
 
     var body: some Scene {
         WindowGroup {

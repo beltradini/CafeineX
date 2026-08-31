@@ -69,10 +69,12 @@ struct CafeineXDataDeletionServiceTests {
         defer { try? FileManager.default.removeItem(at: recoveryRoot) }
 
         let healthKit = DataDeletionHealthKitMock()
+        var didClearSystemActions = false
         let service = CafeineXDataDeletionService(
             healthKitService: healthKit,
             recoveryRootURL: recoveryRoot,
-            defaults: defaults
+            defaults: defaults,
+            clearPendingSystemActions: { didClearSystemActions = true }
         )
         defaults.set(true, forKey: CafeineXOnboarding.completionKey)
         defaults.set(true, forKey: CafeineXWhatsNew.completionKey)
@@ -85,6 +87,7 @@ struct CafeineXDataDeletionServiceTests {
         )
 
         #expect(result.localRecordCount == 13)
+        #expect(didClearSystemActions)
         #expect(result.healthKitSampleCount == 1)
         #expect(result.removedRecoveryBackups)
         #expect(healthKit.deletedIDs == [ownedHealthID])

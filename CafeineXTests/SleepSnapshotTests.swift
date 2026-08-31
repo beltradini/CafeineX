@@ -30,7 +30,9 @@ struct SleepSnapshotTests {
         #expect(try #require(snapshot.awakeDuration) == TimeInterval(60 * 60))
         #expect(snapshot.detailedStageCoverage == 6 * 60 * 60)
         #expect(snapshot.hasDetailedStages)
-        #expect(snapshot.stageIntervals.count == samples.count)
+        // The first sample belongs to the previous night, not the latest session.
+        #expect(snapshot.stageIntervals.count == samples.count - 1)
+        #expect(Set(snapshot.stageIntervals.map(\.id)) == Set(samples.dropFirst().map(\.id)))
         #expect(snapshot.stageIntervals.last?.stage == .awake)
     }
 

@@ -4,6 +4,21 @@ import SwiftData
 
 @MainActor
 enum CafeineXStoreFactory {
+    // App Intents run in the app process. Share the main context with SwiftUI,
+    // rather than opening a second context with stale registered objects.
+    private static var applicationContainer: ModelContainer?
+
+    static func sharedApplicationContainer() throws -> ModelContainer {
+        if let applicationContainer { return applicationContainer }
+        let container = try makePersistentContainer()
+        applicationContainer = container
+        return container
+    }
+
+    static func useApplicationContainer(_ container: ModelContainer) {
+        applicationContainer = container
+    }
+
     static var defaultStoreURL: URL {
         URL.applicationSupportDirectory.appending(path: "default.store")
     }

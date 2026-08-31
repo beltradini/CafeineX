@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct NotificationTime: Codable, Equatable, Sendable {
+nonisolated struct NotificationTime: Codable, Equatable, Sendable {
     var hour: Int
     var minute: Int
 
@@ -38,7 +38,7 @@ struct NotificationTime: Codable, Equatable, Sendable {
     }
 }
 
-struct NotificationPreferences: Codable, Equatable, Sendable {
+nonisolated struct NotificationPreferences: Codable, Equatable, Sendable {
     var habitualDrinkEnabled = false
     var habitualDrinkID: UUID?
     var habitualDrinkTime = NotificationTime(hour: 10, minute: 0)

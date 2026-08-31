@@ -19,7 +19,7 @@ enum CafeineXNotificationID {
     ]
 }
 
-struct NotificationPolicy {
+nonisolated struct NotificationPolicy {
     static func sleepReviewTime(
         schedule: SleepSchedule,
         calendar: Calendar = .current,

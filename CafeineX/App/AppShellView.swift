@@ -17,7 +17,7 @@ struct AppShellView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query private var drinks: [Drink]
     @Query private var cigaretteProfiles: [CigaretteProfile]
-    @Query private var caffeineEntries: [CaffeineEntry]
+    @State private var intentUndoFailures = IntentUndoFailureStore.shared
 
     @Bindable var persistenceIssueCenter: PersistenceIssueCenter
 
@@ -79,11 +79,37 @@ struct AppShellView: View {
             guard phase == .active else { return }
 
             consumeWidgetCommands()
+            consumeAppIntentRoute()
 
+        }
+        .onReceive(NotificationCenter.default.publisher(for: WidgetCommandStore.didEnqueue)) { _ in
+            consumeWidgetCommands()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: CafeineXIntentRouteStore.didChange)) { _ in
+            consumeAppIntentRoute()
+        }
+        .safeAreaInset(edge: .top) {
+            if let failure = intentUndoFailures.failures.first {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Undo wasn't completed").font(.headline)
+                    Text(failure.message).font(.caption)
+                    HStack {
+                        Button("Try Undo Again") {
+                            Task { await intentUndoFailures.retry(entryID: failure.id) }
+                        }
+                        .disabled(intentUndoFailures.isRetrying)
+                        Button("Dismiss") { intentUndoFailures.dismiss(entryID: failure.id) }
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.regularMaterial)
+            }
         }
         .task {
             homeViewModel.attachRecentActionStore(recentActionStore)
             consumeWidgetCommands()
+            consumeAppIntentRoute()
             await refreshNotifications()
         }
         .sheet(isPresented: $quickAddCoordinator.isPresented) {
@@ -172,41 +198,47 @@ struct AppShellView: View {
     // MARK: - Widget Command
 
     private func consumeWidgetCommands() {
-        var didChange = false
-
-        for command in WidgetCommandStore.pendingDrinkCommands() {
-            let alreadySaved = caffeineEntries.contains { entry in
-                entry.source == .widget
-                    && entry.drinkName == command.name
-                    && abs(entry.caffeineMG - command.caffeineMG) < 0.01
-                    && abs(entry.consumedAt.timeIntervalSince(command.createdAt)) < 0.01
+        do {
+            try processWidgetCommands()
+        } catch {
+            persistenceIssueCenter.report("Recording the widget drink", error: error) {
+                try processWidgetCommands()
             }
-            if alreadySaved {
-                WidgetCommandStore.acknowledgeDrinkCommand(id: command.id)
-                continue
-            }
+        }
+    }
 
+    private func processWidgetCommands() throws {
+        let count = try WidgetCommandConsumer.consume(queue: WidgetCommandStore.sharedQueue()) { command in
             let matchedDrink = drinks.first {
-                $0.name == command.name
-                    && abs($0.caffeineMG - command.caffeineMG) < 0.01
+                $0.name == command.name && $0.caffeineMG == command.caffeineMG
             }
+            guard homeViewModel.addDrink(
+                name: command.name, caffeineMG: command.caffeineMG,
+                consumedAt: command.createdAt, drink: matchedDrink,
+                context: modelContext, source: .widget, operationID: command.id
+            ) else {
+                throw NSError(domain: "CafeineX.Widget", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: homeViewModel.healthMessage ?? "The entry could not be saved."
+                ])
+            }
+        }
+        if count > 0 { selectedTab = .home }
+    }
 
-            let didSave = homeViewModel.addDrink(
-                name: command.name,
-                caffeineMG: command.caffeineMG,
-                consumedAt: command.createdAt,
-                drink: matchedDrink,
-                context: modelContext,
-                source: .widget
-            )
-            guard didSave else { break }
+    // MARK: - AppIntent
 
-            WidgetCommandStore.acknowledgeDrinkCommand(id: command.id)
-            didChange = true
+    private func consumeAppIntentRoute() {
+        guard let destination = CafeineXIntentRouteStore.consume() else {
+            return
         }
 
-        if didChange {
-            CafeineXWidgetStore.reloadTimelines()
+        switch destination {
+        case .quickAdd:
+            selectedTab = .home
+            quickAddCoordinator.present(.caffeine)
+
+        case .history:
+            selectedTab = .history
         }
     }
 }

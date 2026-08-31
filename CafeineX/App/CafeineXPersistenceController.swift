@@ -42,6 +42,7 @@ final class CafeineXPersistenceController {
                 originalErrorDescription: previousDetails
             )
             try prepare(container)
+            CafeineXStoreFactory.useApplicationContainer(container)
             state = .ready(container)
         } catch {
             state = .unavailable(Failure(
@@ -57,9 +58,10 @@ final class CafeineXPersistenceController {
             let container = if useInMemoryStore {
                 try CafeineXStoreFactory.makeInMemoryContainer()
             } else {
-                try CafeineXStoreFactory.makePersistentContainer()
+                try CafeineXStoreFactory.sharedApplicationContainer()
             }
             try prepare(container)
+            CafeineXStoreFactory.useApplicationContainer(container)
             state = .ready(container)
         } catch {
             state = .unavailable(Failure(

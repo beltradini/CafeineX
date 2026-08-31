@@ -13,6 +13,7 @@ enum HealthKitError: LocalizedError {
     case sleepAnalysisNotAvailable
     case invalidCaffeineAmount
     case caffeineDeletionFailed
+    case caffeineLinkUnavailable
     
     var errorDescription: String? {
         switch self {
@@ -26,6 +27,8 @@ enum HealthKitError: LocalizedError {
             return "Enter a caffeine amount greater than zero"
         case .caffeineDeletionFailed:
             return "Apple Health did not confirm deletion of the CafeineX caffeine samples"
+        case .caffeineLinkUnavailable:
+            return "The entry is saved locally. Its Apple Health link will be checked again during synchronization."
         }
     }
 }

@@ -47,7 +47,6 @@ final class HomeViewModel {
     private let persistenceIssueCenter: PersistenceIssueCenter?
     private var pendingHealthWrites: [UUID: Task<Void, Never>] = [:]
     private var pendingDrinkUsage: [UUID: DrinkUsageSnapshot] = [:]
-    private var pendingOutboxItems: [UUID: HealthSyncOutboxItem] = [:]
 
     var entries: [CaffeineEntry] = []
     var nicotineEntries: [NicotineEntry] = []
@@ -202,6 +201,17 @@ final class HomeViewModel {
         defer { isSyncingHealth = false }
 
         do {
+            try await CaffeineHealthOperationCoordinator.run {
+                await self.performHealthSynchronization(context: context)
+            }
+        } catch {
+            healthMessage = error.localizedDescription
+        }
+    }
+
+    private func performHealthSynchronization(context: ModelContext) async {
+        do {
+            entries = try context.fetch(FetchDescriptor<CaffeineEntry>())
             let startDate = CaffeineHistoryPolicy.synchronizationStartDate()
             let samples = try await healthKitService.fetchCaffeineSamples(from: startDate, to: .now)
             let importedCount = reconcile(samples: samples, context: context)
@@ -248,39 +258,37 @@ final class HomeViewModel {
         drink: Drink? = nil,
         context: ModelContext,
         actionKind: RecentActionKind = .logged,
-        source: CaffeineSource = .manual
+        source: CaffeineSource = .manual,
+        operationID: UUID = UUID()
     ) -> Bool {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedName.isEmpty, caffeineMG.isFinite, caffeineMG > 0, caffeineMG <= 1_000 else {
-            healthMessage = "Enter a name and a caffeine amount between 1 and 1,000 mg."
-            return false
-        }
-
-        let entry = CaffeineEntry(
-            drinkName: normalizedName,
-            caffeineMG: caffeineMG,
-            consumedAt: min(consumedAt, .now),
-            source: source
-        )
-        let outboxItem = HealthSyncOutboxItem(entryID: entry.id)
-
-        context.insert(entry)
-        context.insert(outboxItem)
+        let receipt: CaffeineLogReceipt
         do {
-            try context.save()
+            receipt = try loggingService(context: context).log(
+                CaffeineLogRequest(operationID: operationID, drinkName: name,
+                                   caffeineMG: caffeineMG, consumedAt: consumedAt, source: source),
+                actionKind: actionKind
+            )
         } catch {
             healthMessage = "CafeineX could not save this entry: \(error.localizedDescription)"
-            reportPersistenceFailure(
-                operation: "Saving the caffeine entry",
-                error: error,
-                context: context
-            )
+            persistenceIssueCenter?.report("Saving the caffeine entry", error: error) { [weak self] in
+                guard let self else { return }
+                guard self.addDrink(
+                    name: name, caffeineMG: caffeineMG, consumedAt: consumedAt, drink: drink,
+                    context: context, actionKind: actionKind, source: source, operationID: operationID
+                ) else {
+                    throw NSError(domain: "CafeineX.Logging", code: 1, userInfo: [
+                        NSLocalizedDescriptionKey: self.healthMessage ?? "The entry could not be saved."
+                    ])
+                }
+            }
             return false
         }
-
-        entries.append(entry)
-        pendingOutboxItems[entry.id] = outboxItem
+        let entry = receipt.entry
+        if !entries.contains(where: { $0.id == entry.id }) { entries.append(entry) }
         entries.sort { $0.consumedAt > $1.consumedAt }
+        recalculateStatus()
+        guard receipt.createdNewEntry else { return true }
+        let normalizedName = entry.drinkName
         if let drink {
             let details = DrinkLibrary.details(
                 for: drink,
@@ -308,13 +316,6 @@ final class HomeViewModel {
             }
         }
         recalculateStatus()
-        recentActions?.record(
-            kind: actionKind,
-            title: "\(actionKind.titlePrefix) \(normalizedName)",
-            detail: "\(Int(caffeineMG.rounded())) mg",
-            relatedEntryID: entry.id,
-            occurredAt: entry.consumedAt
-        )
         presentFeedback(
             Feedback(
                 entryID: entry.id,
@@ -341,56 +342,26 @@ final class HomeViewModel {
             return false
         }
 
-        let undoneTitle = entry.drinkName
-        let undoneDetail = "\(Int(entry.caffeineMG.rounded())) mg"
-
-        pendingHealthWrites[entry.id]?.cancel()
-        pendingHealthWrites[entry.id] = nil
-
-        if let healthKitUUID = entry.healthKitUUID {
-            do {
-                _ = try await healthKitService.deleteCaffeineSamples(ids: [healthKitUUID])
-            } catch {
-                healthMessage = "CafeineX could not remove this Apple Health entry."
-                reportPersistenceFailure(
-                    operation: "Removing the caffeine entry from Apple Health",
-                    error: error,
-                    context: context
-                )
-                return false
-            }
+        let entryID = entry.id
+        pendingHealthWrites[entryID]?.cancel()
+        pendingHealthWrites[entryID] = nil
+        do {
+            try await loggingService(context: context).undo(entryID: entryID)
+        } catch {
+            healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
+            IntentUndoFailureStore.shared.recordFailure(entryID: entryID, error: error)
+            return false
         }
-
-        if let outboxItem = pendingOutboxItems.removeValue(forKey: entry.id)
-            ?? outboxItem(for: entry.id, context: context) {
-            context.delete(outboxItem)
-        }
-        if let usage = pendingDrinkUsage.removeValue(forKey: entry.id) {
+        IntentUndoFailureStore.shared.dismiss(entryID: entryID)
+        if let usage = pendingDrinkUsage.removeValue(forKey: entryID) {
             usage.details.useCount = usage.useCount
             usage.details.lastUsedAt = usage.lastUsedAt
             usage.details.updatedAt = .now
+            do { try context.save() } catch {
+                reportPersistenceFailure(operation: "Restoring drink usage", error: error, context: context)
+            }
         }
-        context.delete(entry)
-
-        do {
-            try context.save()
-        } catch {
-            healthMessage = "CafeineX could not undo this entry: \(error.localizedDescription)"
-            reportPersistenceFailure(
-                operation: "Undoing the caffeine entry",
-                error: error,
-                context: context
-            )
-            return false
-        }
-
-        entries.removeAll { $0.id == entry.id }
-        recentActions?.record(
-            kind: .undone,
-            title: "Undid \(undoneTitle)",
-            detail: undoneDetail,
-            relatedEntryID: entry.id
-        )
+        entries.removeAll { $0.id == entryID }
         self.feedback = nil
         recalculateStatus()
         return true
@@ -409,7 +380,6 @@ final class HomeViewModel {
         }
         pendingHealthWrites.removeAll()
         pendingDrinkUsage.removeAll()
-        pendingOutboxItems.removeAll()
     }
 
     func resetAfterDataDeletion() {
@@ -628,18 +598,7 @@ final class HomeViewModel {
         }
 
         do {
-            let sample = try await healthKitService.saveCaffeine(
-                milligrams: entry.caffeineMG,
-                date: entry.consumedAt,
-                appEntryID: entry.id,
-                displayName: entry.drinkName
-            )
-            entry.healthKitUUID = sample.id
-            if let outboxItem = pendingOutboxItems.removeValue(forKey: entry.id)
-                ?? outboxItem(for: entry.id, context: context) {
-                context.delete(outboxItem)
-            }
-            try context.save()
+            try await loggingService(context: context).synchronizeHealthKit(entryID: entry.id)
             healthMessage = nil
         } catch {
             healthMessage = "Saved on this device, but Apple Health could not be updated: \(error.localizedDescription)"
@@ -749,13 +708,8 @@ final class HomeViewModel {
         )
     }
 
-    private func outboxItem(
-        for entryID: UUID,
-        context: ModelContext
-    ) -> HealthSyncOutboxItem? {
-        let descriptor = FetchDescriptor<HealthSyncOutboxItem>(
-            predicate: #Predicate { $0.entryID == entryID }
-        )
-        return try? context.fetch(descriptor).first
+    private func loggingService(context: ModelContext) -> CaffeineLoggingService {
+        CaffeineLoggingService(context: context, recentActions: recentActions ?? .shared,
+                               healthKitService: healthKitService)
     }
 }
