@@ -2,8 +2,6 @@ import Charts
 import SwiftUI
 
 struct HealthInsightsCard: View {
-    @Environment(\.openURL) private var openURL
-
     let state: HomeViewModel.SleepDataState
     let summary: HealthInsightsSummary?
     let message: String?
@@ -31,7 +29,7 @@ struct HealthInsightsCard: View {
 
             Spacer()
 
-            if state == .available || state == .noData || state == .failed {
+            if state == .available {
                 Button("Refresh", action: refresh)
                     .font(.caption.weight(.semibold))
                     .disabled(isLoading)
@@ -50,8 +48,8 @@ struct HealthInsightsCard: View {
             )
         case .notRequested:
             stateMessage(
-                title: "Add optional sleep context",
-                text: "Allow read-only access to recent sleep analysis. CafeineX keeps the snapshot in memory and does not copy sleep samples into its database.",
+                title: "Optional sleep context",
+                text: "Connect read-only sleep data to add context to your current window.",
                 symbol: "lock.shield"
             )
             Button("Choose Sleep Access", action: connect)
@@ -66,8 +64,8 @@ struct HealthInsightsCard: View {
             }
         case .noData:
             stateMessage(
-                title: "No readable recent sleep data",
-                text: "This can mean there are no completed sleep samples in the last 14 days, access is limited, or read access was not granted. HealthKit does not reveal which applies.",
+                title: "No recent sleep context",
+                text: "No completed sleep sample is available right now.",
                 symbol: "questionmark.circle"
             )
             sleepRecoveryActions
@@ -89,11 +87,15 @@ struct HealthInsightsCard: View {
         VStack(alignment: .leading, spacing: 18) {
             sleepHero(summary.snapshot)
 
-            SleepStageTimelineView(snapshot: summary.snapshot)
-
             if isShowingDetails {
+                SleepStageTimelineView(snapshot: summary.snapshot)
                 sleepMetrics(summary.snapshot)
                 insightList(summary.insights.filter { $0.id != "latest-sleep" })
+
+                Text(HealthInsightsSummary.limitationText)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button("Hide sleep details") {
                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -103,11 +105,8 @@ struct HealthInsightsCard: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(CXTheme.healthAccent)
             } else {
-                let visibleInsights = Array(
-                    summary.insights.filter { $0.id != "latest-sleep" }.prefix(2)
-                )
-                if !visibleInsights.isEmpty {
-                    insightList(visibleInsights)
+                if let insight = summary.insights.first(where: { $0.id != "latest-sleep" }) {
+                    insightRow(insight)
                 }
 
                 Button("View sleep details") {
@@ -119,11 +118,6 @@ struct HealthInsightsCard: View {
                 .foregroundStyle(CXTheme.healthAccent)
                 .accessibilityIdentifier("view-sleep-details-button")
             }
-
-            Text(HealthInsightsSummary.limitationText)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -139,30 +133,28 @@ struct HealthInsightsCard: View {
     }
 
     private var sleepRecoveryActions: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        ViewThatFits(in: .horizontal) {
             HStack(spacing: 10) {
-                Button("Review Permissions", action: connect)
-                    .buttonStyle(.borderedProminent)
-                    .tint(CXTheme.healthAccent)
-                    .accessibilityIdentifier("review-sleep-permissions-button")
-
-                Button("Try Again", action: refresh)
-                    .buttonStyle(.bordered)
-                    .disabled(isLoading)
-                    .accessibilityIdentifier("retry-sleep-button")
+                sleepRecoveryButtons
             }
 
-            Button {
-                if let url = URL(string: "x-apple-health://") {
-                    openURL(url)
-                }
-            } label: {
-                Label("Open Apple Health", systemImage: "arrow.up.right.square")
-                    .font(.caption.weight(.semibold))
+            VStack(alignment: .leading, spacing: 10) {
+                sleepRecoveryButtons
             }
-            .foregroundStyle(CXTheme.healthAccent)
-            .accessibilityIdentifier("open-apple-health-button")
         }
+    }
+
+    @ViewBuilder
+    private var sleepRecoveryButtons: some View {
+        Button("Review Access", action: connect)
+            .buttonStyle(.borderedProminent)
+            .tint(CXTheme.healthAccent)
+            .accessibilityIdentifier("review-sleep-permissions-button")
+
+        Button("Try Again", action: refresh)
+            .buttonStyle(.bordered)
+            .disabled(isLoading)
+            .accessibilityIdentifier("retry-sleep-button")
     }
 
     private func sleepHero(_ snapshot: SleepSnapshot) -> some View {

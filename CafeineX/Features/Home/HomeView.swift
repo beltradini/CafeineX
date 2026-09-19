@@ -13,7 +13,6 @@ struct HomeView: View {
     @Query(sort: \Drink.name) private var drinks: [Drink]
     @Query private var drinkDetails: [DrinkDetails]
     @Query private var profiles: [UserProfile]
-    @Query private var checkIns: [AwarenessCheckIn]
     @Query private var cigaretteProfiles: [CigaretteProfile]
     @Query private var cigaretteDetails: [CigaretteEventDetails]
     @Query private var cigarettePreferences: [CigarettePreferences]
@@ -49,28 +48,11 @@ struct HomeView: View {
                     header
 
                     if allItems.isEmpty {
-                        HomeEmptyStateCard(
-                            healthState: viewModel.healthAccessState,
-                            startCaffeine: { quickAddCoordinator.present(.caffeine) },
-                            startNicotine: { quickAddCoordinator.present(.nicotine) },
-                            connectHealth: {
-                                Task {
-                                    if viewModel.healthAccessState == .notRequested {
-                                        await viewModel.requestHealthAccess(context: modelContext)
-                                    } else {
-                                        await viewModel.synchronizeHealthKit(context: modelContext)
-                                    }
-                                }
-                            }
-                        )
+                        HomeEmptyStateCard()
                     }
 
-                    if let status = viewModel.status {
+                    if !entries.isEmpty, let status = viewModel.status {
                         ExposureHeroView(status: status)
-                    }
-
-                    if let context = viewModel.dailyExposureContext {
-                        DailyExposureCard(context: context)
                     }
 
                     HomeQuickAddView(
@@ -82,7 +64,10 @@ struct HomeView: View {
                         logNicotine: logQuickNicotine
                     )
 
-                    RecentActionsCard()
+                    if let context = viewModel.dailyExposureContext,
+                       shouldShowDailyExposureContext(context) {
+                        DailyExposureCard(context: context)
+                    }
 
                     HealthInsightsCard(
                         state: viewModel.sleepDataState,
@@ -100,41 +85,6 @@ struct HomeView: View {
                             }
                         }
                     )
-
-                    if !allItems.isEmpty {
-                        HomeTimelineView(
-                            items: Array(allItems.prefix(CaffeineHistoryPolicy.dashboardEntryLimit)),
-                            openQuickAdd: { quickAddCoordinator.present() },
-                            repeatItem: repeatItem
-                        )
-                    }
-
-                    CigaretteIntelligenceCard(
-                        summary: cigaretteSummary,
-                        goal: cigarettePreference?.goal ?? .awareness,
-                        addCigarette: addOneCigarette
-                    )
-
-                    HomeStreakCard(
-                        summary: streakSummary,
-                        reviewToday: reviewToday
-                    )
-
-                    HealthConnectionCard(
-                        state: viewModel.healthAccessState,
-                        isSyncing: viewModel.isSyncingHealth,
-                        lastSyncDate: viewModel.lastHealthSyncDate,
-                        message: viewModel.healthMessage,
-                        sleepState: viewModel.sleepDataState
-                    ) {
-                        Task {
-                            if viewModel.healthAccessState == .notRequested {
-                                await viewModel.requestHealthAccess(context: modelContext)
-                            } else {
-                                await viewModel.synchronizeHealthKit(context: modelContext)
-                            }
-                        }
-                    }
                 }
                 .frame(maxWidth: CXTheme.screenMaxWidth)
                 .padding(.horizontal, CXTheme.horizontalPadding)
@@ -191,7 +141,7 @@ struct HomeView: View {
 
             updateWidgetSnapshot()
         }
-        .onChange(of: timelineSignature) {
+        .onChange(of: exposureSignature) {
             viewModel.load(entries: entries, nicotineEntries: nicotineEntries)
 
             updateWidgetSnapshot()
@@ -222,7 +172,7 @@ struct HomeView: View {
             Text(greeting)
                 .font(.largeTitle.bold())
 
-            Text("Make the next choice with your sleep and active exposure in view.")
+            Text("See what matters now, then log in one tap.")
                 .font(.subheadline)
                 .foregroundStyle(.primary)
         }
@@ -236,7 +186,7 @@ struct HomeView: View {
         )
     }
 
-    private var timelineSignature: [String] {
+    private var exposureSignature: [String] {
         allItems.map {
             "\($0.id)|\($0.title)|\($0.amountText)|\($0.date.timeIntervalSinceReferenceDate)"
         }
@@ -273,10 +223,6 @@ struct HomeView: View {
         favoriteDrinks.map {
             "\($0.id)|\($0.name)|\($0.caffeineMG)|\($0.categoryRawValue)"
         }
-    }
-
-    private var cigarettePreference: CigarettePreferences? {
-        cigarettePreferences.first
     }
 
     private var favoriteCigarette: CigaretteProfile? {
@@ -332,36 +278,6 @@ struct HomeView: View {
         }
     }
 
-    private var cigaretteSummary: CigaretteIntelligenceSummary {
-        let detailsByEntry = Dictionary(uniqueKeysWithValues: cigaretteDetails.map { ($0.nicotineEntryID, $0) })
-        let preference = cigarettePreference
-        return CigaretteEngine(configuration: .init(
-            pairingWindow: TimeInterval((preference?.pairingWindowMinutes ?? 30) * 60),
-            sleepProtectionWindow: TimeInterval((preference?.sleepProtectionMinutes ?? 240) * 60),
-            sleepSchedule: sleepScheduleStore.schedule
-        )).makeSummary(
-            cigaretteEvents: nicotineEntries
-                .filter { $0.product == .cigarette }
-                .map {
-                    CigaretteEvent(
-                        id: $0.id,
-                        usedAt: $0.usedAt,
-                        quantity: $0.quantity,
-                        context: detailsByEntry[$0.id]?.context
-                    )
-                },
-            caffeineDoses: entries.map(\.dose)
-        )
-    }
-
-    private var streakSummary: StreakSummary {
-        StreakEngine().makeSummary(
-            checkInDates: checkIns.map(\.day),
-            caffeineDates: entries.map(\.consumedAt),
-            sleepSchedule: sleepScheduleStore.schedule
-        )
-    }
-
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
         let salutation: String
@@ -386,50 +302,10 @@ struct HomeView: View {
         )
     }
 
-    private func addOneCigarette() {
-        _ = viewModel.addCigarette(
-            profileID: favoriteCigarette?.id,
-            profiles: cigaretteProfiles,
-            context: modelContext
-        )
-    }
-
-    private func repeatItem(_ item: ExposureItem) {
-        switch item {
-        case .caffeine(let entry):
-            _ = viewModel.addDrink(
-                name: entry.drinkName,
-                caffeineMG: entry.caffeineMG,
-                drink: drinks.first {
-                    $0.name == entry.drinkName
-                        && abs($0.caffeineMG - entry.caffeineMG) < 0.01
-                },
-                context: modelContext,
-                actionKind: .loggedAgain
-            )
-        case .nicotine(let entry):
-            _ = viewModel.addNicotine(
-                product: entry.product,
-                quantity: entry.quantity,
-                unit: entry.unit,
-                note: entry.note,
-                context: modelContext,
-                actionKind: .loggedAgain
-            )
-        }
-    }
-
-    private func reviewToday() {
-        let today = Calendar.current.startOfDay(for: .now)
-        guard !checkIns.contains(where: {
-            Calendar.current.isDate($0.day, inSameDayAs: today)
-        }) else {
-            return
-        }
-        modelContext.insert(AwarenessCheckIn(day: today))
-        persistenceIssues.attempt("Saving today's review") {
-            try modelContext.save()
-        }
+    private func shouldShowDailyExposureContext(_ context: DailyExposureContext) -> Bool {
+        !context.nicotineStatus.amountsToday.isEmpty
+            || context.hasTemporalOverlap
+            || context.guidance == .sleepPriority
     }
 
     private func ensureProfileExists() {
@@ -479,63 +355,23 @@ struct HomeView: View {
 }
 
 private struct HomeEmptyStateCard: View {
-    let healthState: HomeViewModel.HealthAccessState
-    let startCaffeine: () -> Void
-    let startNicotine: () -> Void
-    let connectHealth: () -> Void
-
     var body: some View {
-        CXSurfaceCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(CXTheme.healthAccent)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(CXTheme.healthAccent)
+                .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Start with one moment")
-                            .font(.headline)
-                        Text("Your first entry takes less than 10 seconds.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Button(action: startCaffeine) {
-                        Label("Log caffeine", systemImage: "cup.and.saucer.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(CXTheme.caffeineAccent)
-                    .accessibilityIdentifier("empty-state-log-caffeine-button")
-
-                    Button(action: startNicotine) {
-                        Label("Log nicotine", systemImage: "smoke.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(CXTheme.nicotineAccent)
-                    .accessibilityIdentifier("empty-state-log-nicotine-button")
-                }
-
-                if healthState != .unavailable {
-                    Button(action: connectHealth) {
-                        Label(
-                            healthState == .notRequested
-                                ? "Connect Apple Health"
-                                : "Sync Apple Health",
-                            systemImage: "heart.fill"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(CXTheme.healthAccent)
-                    .accessibilityIdentifier("empty-state-connect-health-button")
-                }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Start with one moment")
+                    .font(.headline)
+                Text("Tap a favorite below or use Quick Add for something else.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
-        .accessibilityElement(children: .contain)
+        .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("home-empty-state-card")
     }
 }

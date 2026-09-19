@@ -5,15 +5,15 @@ struct DailyExposureCard: View {
 
     var body: some View {
         CXSurfaceCard {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Daily Exposure")
-                            .font(.headline)
+                        Text("Nicotine context")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
 
                         Text(context.guidance.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(guidanceTint)
+                            .font(.title3.bold())
                     }
 
                     Spacer()
@@ -24,24 +24,21 @@ struct DailyExposureCard: View {
                         .accessibilityHidden(true)
                 }
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 145), spacing: 12)],
-                    spacing: 12
-                ) {
-                    CXMetricTile(
-                        title: "Nicotine today",
-                        value: context.nicotineStatus.amountsToday.displayText,
-                        symbol: "waveform.path.ecg",
-                        tint: CXTheme.nicotineAccent
+                HStack(spacing: 18) {
+                    Label(
+                        context.nicotineStatus.amountsToday.displayText,
+                        systemImage: "waveform.path.ecg"
                     )
 
-                    CXMetricTile(
-                        title: "Active windows",
-                        value: context.nicotineStatus.activeEventCount.formatted(),
-                        symbol: "clock.badge",
-                        tint: CXTheme.nicotineAccent
-                    )
+                    if context.nicotineStatus.activeEventCount > 0 {
+                        Label(
+                            "\(context.nicotineStatus.activeEventCount) active",
+                            systemImage: "clock"
+                        )
+                    }
                 }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(CXTheme.nicotineAccent)
 
                 Text(context.guidance.message)
                     .font(.subheadline)
@@ -56,12 +53,10 @@ struct DailyExposureCard: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(CXTheme.warningAccent)
                 }
-
-                Text(context.nicotineStatus.sleepGuidance.message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home-nicotine-context-card")
     }
 
     private var guidanceTint: Color {

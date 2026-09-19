@@ -11,7 +11,7 @@ struct CafeineXQuickLogWidget: Widget {
             CafeineXQuickLogView(snapshot: entry.snapshot)
         }
         .configurationDisplayName("Quick Log")
-        .description("Record a favorite drink with one tap.")
+        .description("Record one of your favorite drinks.")
         .supportedFamilies([.systemSmall])
     }
 }
@@ -20,28 +20,15 @@ struct CafeineXQuickLogView: View {
     let snapshot: CafeineXWidgetSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label("Quick Log", systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                Text("Favorites")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Quick Log")
+                .font(.headline)
 
             if snapshot.favoriteDrinks.isEmpty {
                 noFavorites
             } else {
-                ForEach(snapshot.favoriteDrinks.prefix(2)) { drink in
-                    CafeineXFavoriteButton(drink: drink)
-                }
+                favoriteRows
             }
-
-            Spacer(minLength: 0)
         }
         .containerBackground(for: .widget) {
             CafeineXWidgetBackground()
@@ -49,20 +36,41 @@ struct CafeineXQuickLogView: View {
         .widgetURL(URL(string: "cafeinex://quick-add"))
     }
 
-    private var noFavorites: some View {
-        Link(destination: URL(string: "cafeinex://quick-add")!) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: "cup.and.saucer")
-                    .font(.title2)
-                    .foregroundStyle(CafeineXWidgetPalette.caffeine)
-                    .widgetAccentable()
-                Text("Choose a favorite drink")
-                    .font(.headline)
-                Text("Open CafeineX to configure Quick Log.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    private var favoriteRows: some View {
+        let favorites = Array(snapshot.favoriteDrinks.prefix(2))
+
+        return VStack(spacing: 0) {
+            ForEach(Array(favorites.enumerated()), id: \.element.id) { index, drink in
+                CafeineXFavoriteButton(drink: drink)
+                    .privacySensitive()
+
+                if index < favorites.count - 1 {
+                    Divider()
+                }
             }
         }
+    }
+
+    private var noFavorites: some View {
+        Link(destination: URL(string: "cafeinex://quick-add")!) {
+            VStack(alignment: .leading, spacing: 5) {
+                Spacer(minLength: 0)
+
+                Text("No favorites yet")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text("Choose drinks in CafeineX")
+                    .font(.caption)
+                    .foregroundStyle(CafeineXWidgetPalette.caffeine)
+                    .widgetAccentable()
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
         .buttonStyle(.plain)
+        .accessibilityLabel("Open CafeineX to choose favorite drinks")
     }
 }

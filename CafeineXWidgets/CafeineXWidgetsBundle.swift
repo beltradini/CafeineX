@@ -11,7 +11,9 @@ import SwiftUI
 @main
 struct CafeineXWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        CafeineXOverviewWidget()
+        CafeineXActiveWindowWidget()
         CafeineXQuickLogWidget()
+        CafeineXTodayWidget()
+        CafeineXDailyRhythmWidget()
     }
 }

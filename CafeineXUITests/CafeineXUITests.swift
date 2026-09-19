@@ -94,7 +94,7 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
-    func testFavoriteDrinkLogsDirectlyAndAppearsInRecentActions() throws {
+    func testFavoriteDrinkLogsDirectlyAndAppearsInHistory() throws {
         let app = makeApp()
         app.launch()
 
@@ -102,9 +102,15 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(espresso.waitForExistence(timeout: 8))
         espresso.tap()
 
-        let actions = app.descendants(matching: .any)["recent-actions-card"].firstMatch
-        XCTAssertTrue(actions.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Logged Espresso"].exists)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["undo-last-add-button"]
+                .waitForExistence(timeout: 5)
+        )
+
+        let history = navigationButton(named: "History", in: app)
+        history.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Espresso"].waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -116,8 +122,15 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(nicotine.waitForExistence(timeout: 8))
         nicotine.tap()
 
-        XCTAssertTrue(app.descendants(matching: .any)["recent-actions-card"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Logged cigarette"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["undo-last-add-button"]
+                .waitForExistence(timeout: 5)
+        )
+
+        let history = navigationButton(named: "History", in: app)
+        history.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Cigarette"].waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -162,11 +175,11 @@ final class CafeineXUITests: XCTestCase {
 
         let emptyState = app.descendants(matching: .any)["home-empty-state-card"].firstMatch
         XCTAssertTrue(emptyState.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["empty-state-log-caffeine-button"].exists)
-        XCTAssertTrue(app.buttons["empty-state-log-nicotine-button"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["health-connection-card"].exists)
-        XCTAssertTrue(app.staticTexts["Saved on this device"].exists)
-        XCTAssertTrue(app.staticTexts["Health & sync status"].exists)
+        XCTAssertTrue(app.buttons["Add Espresso, 64 milligrams"].exists)
+        XCTAssertTrue(app.buttons["home-quick-log-nicotine-button"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["health-insights-card"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["recent-actions-card"].exists)
+        XCTAssertFalse(app.staticTexts["Health & sync status"].exists)
     }
 
     @MainActor

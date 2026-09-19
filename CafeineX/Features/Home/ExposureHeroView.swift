@@ -5,7 +5,7 @@ struct ExposureHeroView: View {
 
     var body: some View {
         CXSurfaceCard {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Right now")
@@ -28,61 +28,68 @@ struct ExposureHeroView: View {
                         .background(riskTint.opacity(0.12), in: Capsule())
                 }
 
-                Label(recommendationText, systemImage: "sparkles")
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(activeRangeText)
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(CXTheme.caffeineAccent)
+                        .contentTransition(.numericText())
+
+                    Text("Estimated active caffeine")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 18) {
+                        contextLabel(
+                            "\(Int(status.consumedTodayMG.rounded())) mg today",
+                            symbol: "cup.and.saucer.fill",
+                            tint: CXTheme.caffeineAccent
+                        )
+                        contextLabel(
+                            "Sleep \(status.targetBedtime.formatted(date: .omitted, time: .shortened))",
+                            symbol: "moon.fill",
+                            tint: CXTheme.healthAccent
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        contextLabel(
+                            "\(Int(status.consumedTodayMG.rounded())) mg today",
+                            symbol: "cup.and.saucer.fill",
+                            tint: CXTheme.caffeineAccent
+                        )
+                        contextLabel(
+                            "Sleep \(status.targetBedtime.formatted(date: .omitted, time: .shortened))",
+                            symbol: "moon.fill",
+                            tint: CXTheme.healthAccent
+                        )
+                    }
+                }
+
+                Divider()
+
+                Label(recommendationText, systemImage: recommendationSymbol)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 145), spacing: 12)],
-                    spacing: 12
-                ) {
-                    CXMetricTile(
-                        title: "Active estimate",
-                        value: "≈ \(Int(status.activeCaffeineMG.rounded())) mg",
-                        symbol: "bolt.heart",
-                        tint: CXTheme.caffeineAccent
-                    )
-
-                    CXMetricTile(
-                        title: "Suggested cutoff",
-                        value: status.suggestedCutoffTime.formatted(
-                            date: .omitted,
-                            time: .shortened
-                        ),
-                        symbol: "clock.badge.checkmark",
-                        tint: CXTheme.nicotineAccent
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("\(Int(status.consumedTodayMG.rounded())) mg today")
-                            .font(.subheadline.weight(.semibold))
-                        Spacer()
-                        Text("400 mg reference")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    ProgressView(value: status.dailyProgress)
-                        .tint(riskTint)
-                        .accessibilityLabel("Daily caffeine reference")
-                        .accessibilityValue(
-                            Text(status.dailyProgress, format: .percent)
-                        )
-
-                    Text("Likely active range: \(Int(status.activeCaffeineLowMG.rounded()))–\(Int(status.activeCaffeineHighMG.rounded())) mg")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.top, 6)
-
-                    Text("At \(status.targetBedtime, style: .time): \(Int(status.caffeineAtBedtimeLowMG.rounded()))–\(Int(status.caffeineAtBedtimeHighMG.rounded())) mg estimated")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home-current-status-card")
+    }
+
+    private var activeRangeText: String {
+        let low = Int(status.activeCaffeineLowMG.rounded())
+        let high = Int(status.activeCaffeineHighMG.rounded())
+        return low == high ? "\(low) mg" : "\(low)–\(high) mg"
+    }
+
+    private func contextLabel(_ text: String, symbol: String, tint: Color) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint)
     }
 
     private var riskTint: Color {

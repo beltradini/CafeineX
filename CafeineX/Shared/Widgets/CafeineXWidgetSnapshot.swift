@@ -12,14 +12,17 @@ nonisolated enum CafeineXWidgetConstants {
     static let snapshotKey = "cafeinex.widget.snapshot"
     static let commandKey = "cafeinex.widget.pending-command"
 
-    // Preserve the original kind so installed Active Window widgets migrate
-    // to the redesigned Overview configuration without being invalidated.
-    static let overviewKind = "CafeineX.ActiveWindow"
+    // Preserve this original kind so installed Active Window widgets remain valid.
+    static let activeWindowKind = "CafeineX.ActiveWindow"
     static let quickLogKind = "CafeineX.QuickLog"
+    static let todayKind = "CafeineX.Today"
+    static let dailyRhythmKind = "CafeineX.DailyRhythm"
 
     static let widgetKinds = [
-        overviewKind,
+        activeWindowKind,
         quickLogKind,
+        todayKind,
+        dailyRhythmKind,
     ]
 }
 
@@ -64,13 +67,6 @@ nonisolated struct CafeineXWidgetSnapshot: Codable, Sendable {
 
     func isStale(relativeTo date: Date = .now) -> Bool {
         date.timeIntervalSince(generatedAt) > 2 * 60 * 60
-    }
-
-    func sleepProgress(relativeTo date: Date = .now) -> Double {
-        let start = bedtime.addingTimeInterval(-12 * 60 * 60)
-        let duration = bedtime.timeIntervalSince(start)
-        guard duration > 0 else { return 0 }
-        return min(max(date.timeIntervalSince(start) / duration, 0), 1)
     }
 
     func projected(relativeTo date: Date) -> CafeineXWidgetSnapshot {

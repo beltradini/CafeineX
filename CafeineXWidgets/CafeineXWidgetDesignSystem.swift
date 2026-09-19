@@ -6,91 +6,65 @@ enum CafeineXWidgetPalette {
     static let caffeine = Color(red: 1.00, green: 0.56, blue: 0.18)
     static let nicotine = Color(red: 0.58, green: 0.43, blue: 1.00)
     static let sleep = Color(red: 0.23, green: 0.78, blue: 0.76)
-    static let warmDark = Color(red: 0.13, green: 0.08, blue: 0.05)
-    static let deepDark = Color(red: 0.025, green: 0.035, blue: 0.045)
-    static let petroleum = Color(red: 0.02, green: 0.15, blue: 0.15)
+
+    static let lightBackground = Color(red: 0.985, green: 0.975, blue: 0.96)
+    static let darkBackground = Color(red: 0.045, green: 0.05, blue: 0.06)
 }
 
+/// A quiet canvas that keeps CafeineX recognizable in full color and lets the
+/// system supply tinted, clear, vibrant, StandBy, and Lock Screen materials.
 struct CafeineXWidgetBackground: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
         switch renderingMode {
         case .fullColor:
-            LinearGradient(
-                colors: backgroundColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            if isLuminanceReduced {
+                CafeineXWidgetPalette.darkBackground
+            } else {
+                ZStack {
+                    colorScheme == .dark
+                        ? CafeineXWidgetPalette.darkBackground
+                        : CafeineXWidgetPalette.lightBackground
+
+                    LinearGradient(
+                        colors: [
+                            CafeineXWidgetPalette.caffeine.opacity(colorScheme == .dark ? 0.10 : 0.07),
+                            .clear,
+                            CafeineXWidgetPalette.sleep.opacity(colorScheme == .dark ? 0.07 : 0.05),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
         case .accented, .vibrant:
             Color.clear
         default:
             Color.clear
         }
     }
-
-    private var backgroundColors: [Color] {
-        if colorScheme == .dark {
-            return [
-                CafeineXWidgetPalette.warmDark,
-                CafeineXWidgetPalette.deepDark,
-                CafeineXWidgetPalette.petroleum,
-            ]
-        }
-
-        return [
-            Color(red: 1.00, green: 0.96, blue: 0.91),
-            Color(red: 0.95, green: 0.98, blue: 0.97),
-            Color(red: 0.89, green: 0.96, blue: 0.95),
-        ]
-    }
-}
-
-struct CafeineXBrandMark: View {
-    var compact = false
-
-    var body: some View {
-        HStack(spacing: compact ? 4 : 6) {
-            Image(systemName: "sparkles")
-                .foregroundStyle(CafeineXWidgetPalette.caffeine)
-                .widgetAccentable()
-                .accessibilityHidden(true)
-
-            Text("CafeineX")
-                .font(compact ? .caption2.weight(.semibold) : .caption.weight(.semibold))
-                .foregroundStyle(.primary)
-        }
-    }
 }
 
 struct CafeineXStateLabel: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let snapshot: CafeineXWidgetSnapshot
-    var compact = false
 
     var body: some View {
-        Label(statusTitle, systemImage: statusSymbol)
-            .font(compact ? .caption2.weight(.semibold) : .caption.weight(.semibold))
+        Label(snapshot.state.title, systemImage: snapshot.state.symbolName)
+            .font(.caption.weight(.semibold))
             .foregroundStyle(statusColor)
             .lineLimit(1)
-            .minimumScaleFactor(0.78)
+            .minimumScaleFactor(0.82)
             .widgetAccentable()
-            .accessibilityLabel(statusTitle)
-    }
-
-    private var statusTitle: String {
-        snapshot.isStale() ? "Data may be outdated" : snapshot.state.title
-    }
-
-    private var statusSymbol: String {
-        snapshot.isStale() ? "clock.badge.exclamationmark" : snapshot.state.symbolName
+            .accessibilityLabel(snapshot.state.title)
     }
 
     private var statusColor: Color {
-        guard !snapshot.isStale() else { return .secondary }
-
-        guard renderingMode == .fullColor else {
+        guard renderingMode == .fullColor, !isLuminanceReduced else {
             return .primary
         }
 
@@ -105,85 +79,56 @@ struct CafeineXStateLabel: View {
     }
 }
 
-struct CafeineXTimelineBar: View {
+struct CafeineXFreshnessLabel: View {
     let snapshot: CafeineXWidgetSnapshot
 
     var body: some View {
-        VStack(spacing: 3) {
-            GeometryReader { proxy in
-                let progress = snapshot.sleepProgress()
-
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.secondary.opacity(0.2))
-
-                    Capsule()
-                        .fill(CafeineXWidgetPalette.sleep)
-                        .frame(width: max(proxy.size.width * progress, 6))
-                        .widgetAccentable()
-
-                    Circle()
-                        .fill(.primary)
-                        .frame(width: 7, height: 7)
-                        .offset(x: max(min(proxy.size.width * progress - 3.5, proxy.size.width - 7), 0))
+        if snapshot.isStale() {
+            Label {
+                HStack(spacing: 3) {
+                    Text("Updated")
+                    Text(snapshot.generatedAt, style: .relative)
                 }
+            } icon: {
+                Image(systemName: "clock.badge.exclamationmark")
             }
-            .frame(height: 5)
-
-            HStack {
-                Text("Now")
-                Spacer()
-                Text("Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))")
-            }
-            .font(.caption2)
+            .font(.caption)
             .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .accessibilityElement(children: .combine)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Now to configured sleep time, \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))"
-        )
     }
 }
 
 struct CafeineXFavoriteButton: View {
     let drink: WidgetFavoriteDrink
-    var compact = false
 
     var body: some View {
         Button(intent: LogFavoriteDrinkIntent(
             name: drink.name,
             caffeineMG: drink.caffeineMG
         )) {
-            HStack(spacing: compact ? 5 : 7) {
-                Image(systemName: drink.symbolName)
+            HStack(spacing: 8) {
+                Text(drink.name)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(CafeineXWidgetPalette.caffeine)
+                    .lineLimit(1)
                     .widgetAccentable()
 
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(drink.name)
-                        .font(compact ? .caption2.weight(.semibold) : .caption.weight(.semibold))
-                        .lineLimit(1)
-                    if !compact {
-                        Text("\(Int(drink.caffeineMG.rounded())) mg")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Spacer(minLength: 8)
 
-                Spacer(minLength: 0)
-
-                Image(systemName: "plus.circle.fill")
-                    .imageScale(.small)
-                    .foregroundStyle(CafeineXWidgetPalette.caffeine)
-                    .widgetAccentable()
+                Text("\(Int(drink.caffeineMG.rounded())) mg")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, compact ? 8 : 10)
-            .frame(maxWidth: .infinity, minHeight: compact ? 28 : 34)
-            .background(.secondary.opacity(0.14), in: ContainerRelativeShape())
+            .frame(maxWidth: .infinity, minHeight: 42)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .invalidatableContent()
         .accessibilityLabel("Log \(drink.name), \(Int(drink.caffeineMG.rounded())) milligrams")
+        .accessibilityHint("Records this favorite in CafeineX")
     }
 }
 

@@ -3,6 +3,15 @@ import Testing
 @testable import CafeineX
 
 struct CafeineXWidgetSnapshotTests {
+    @Test func widgetConfigurationsUseFourStableUniqueKinds() {
+        #expect(CafeineXWidgetConstants.activeWindowKind == "CafeineX.ActiveWindow")
+        #expect(CafeineXWidgetConstants.widgetKinds.count == 4)
+        #expect(Set(CafeineXWidgetConstants.widgetKinds).count == 4)
+        #expect(CafeineXWidgetConstants.widgetKinds.contains(CafeineXWidgetConstants.quickLogKind))
+        #expect(CafeineXWidgetConstants.widgetKinds.contains(CafeineXWidgetConstants.todayKind))
+        #expect(CafeineXWidgetConstants.widgetKinds.contains(CafeineXWidgetConstants.dailyRhythmKind))
+    }
+
     @Test func equalBoundsUseOneValueInsteadOfARepeatedRange() {
         let snapshot = makeSnapshot(low: 64.2, high: 64.4)
 

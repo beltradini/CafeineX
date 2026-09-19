@@ -2,41 +2,100 @@ import SwiftUI
 import WidgetKit
 
 struct CafeineXWidgetPreviews: PreviewProvider {
-    private static let entry = CafeineXWidgetEntry(
+    private static let currentEntry = CafeineXWidgetEntry(
         date: .now,
         snapshot: .preview
     )
 
+    private static let staleEntry = CafeineXWidgetEntry(
+        date: .now,
+        snapshot: makeSnapshot(
+            generatedAt: .now.addingTimeInterval(-3 * 60 * 60)
+        )
+    )
+
+    private static let emptySnapshot = makeSnapshot(
+        activeCaffeineLowMG: nil,
+        activeCaffeineHighMG: nil,
+        caffeineTodayMG: 0,
+        state: .noRecentData,
+        recentExposures: [],
+        activeRangePoints: []
+    )
+
+    private static let noFavoritesSnapshot = makeSnapshot(
+        favoriteDrinks: []
+    )
+
     static var previews: some View {
         Group {
-            CafeineXOverviewEntryView(entry: entry)
+            CafeineXActiveWindowEntryView(entry: currentEntry)
                 .previewContext(WidgetPreviewContext(family: .systemSmall))
-                .previewDisplayName("Overview · Small")
+                .previewDisplayName("Active Window · Current")
 
-            CafeineXOverviewEntryView(entry: entry)
-                .previewContext(WidgetPreviewContext(family: .systemMedium))
-                .previewDisplayName("Overview · Medium")
+            CafeineXActiveWindowEntryView(entry: staleEntry)
+                .previewContext(WidgetPreviewContext(family: .systemSmall))
+                .previewDisplayName("Active Window · Stale")
 
-            CafeineXOverviewEntryView(entry: entry)
-                .previewContext(WidgetPreviewContext(family: .systemLarge))
-                .previewDisplayName("Overview · Large")
-
-            CafeineXOverviewEntryView(entry: entry)
+            CafeineXActiveWindowEntryView(entry: currentEntry)
                 .previewContext(WidgetPreviewContext(family: .accessoryInline))
-                .previewDisplayName("Lock Screen Inline")
+                .previewDisplayName("Active Window · Inline")
 
-            CafeineXOverviewEntryView(entry: entry)
+            CafeineXActiveWindowEntryView(entry: currentEntry)
                 .previewContext(WidgetPreviewContext(family: .accessoryCircular))
-                .previewDisplayName("Lock Screen Circular")
+                .previewDisplayName("Active Window · Circular")
 
-            CafeineXOverviewEntryView(entry: entry)
+            CafeineXActiveWindowEntryView(entry: currentEntry)
                 .previewContext(WidgetPreviewContext(family: .accessoryRectangular))
-                .previewDisplayName("Lock Screen Rectangular")
+                .previewDisplayName("Active Window · Rectangular")
 
-            CafeineXQuickLogView(snapshot: entry.snapshot)
+            CafeineXQuickLogView(snapshot: currentEntry.snapshot)
                 .previewContext(WidgetPreviewContext(family: .systemSmall))
-                .previewDisplayName("Quick Log")
+                .previewDisplayName("Quick Log · Favorites")
 
+            CafeineXQuickLogView(snapshot: noFavoritesSnapshot)
+                .previewContext(WidgetPreviewContext(family: .systemSmall))
+                .previewDisplayName("Quick Log · Empty")
+
+            CafeineXTodayView(snapshot: currentEntry.snapshot)
+                .previewContext(WidgetPreviewContext(family: .systemMedium))
+                .previewDisplayName("Today · Current")
+
+            CafeineXTodayView(snapshot: emptySnapshot)
+                .previewContext(WidgetPreviewContext(family: .systemMedium))
+                .previewDisplayName("Today · Empty")
+
+            CafeineXDailyRhythmView(snapshot: currentEntry.snapshot)
+                .previewContext(WidgetPreviewContext(family: .systemLarge))
+                .previewDisplayName("Daily Rhythm · Current")
+
+            CafeineXDailyRhythmView(snapshot: emptySnapshot)
+                .previewContext(WidgetPreviewContext(family: .systemLarge))
+                .previewDisplayName("Daily Rhythm · Empty")
         }
+    }
+
+    private static func makeSnapshot(
+        generatedAt: Date = CafeineXWidgetSnapshot.preview.generatedAt,
+        activeCaffeineLowMG: Double? = CafeineXWidgetSnapshot.preview.activeCaffeineLowMG,
+        activeCaffeineHighMG: Double? = CafeineXWidgetSnapshot.preview.activeCaffeineHighMG,
+        caffeineTodayMG: Double = CafeineXWidgetSnapshot.preview.caffeineTodayMG,
+        state: WidgetWindowState = CafeineXWidgetSnapshot.preview.state,
+        recentExposures: [WidgetExposure] = CafeineXWidgetSnapshot.preview.recentExposures,
+        favoriteDrinks: [WidgetFavoriteDrink] = CafeineXWidgetSnapshot.preview.favoriteDrinks,
+        activeRangePoints: [WidgetActiveRangePoint] = CafeineXWidgetSnapshot.preview.activeRangePoints
+    ) -> CafeineXWidgetSnapshot {
+        CafeineXWidgetSnapshot(
+            generatedAt: generatedAt,
+            activeCaffeineLowMG: activeCaffeineLowMG,
+            activeCaffeineHighMG: activeCaffeineHighMG,
+            caffeineTodayMG: caffeineTodayMG,
+            bedtime: CafeineXWidgetSnapshot.preview.bedtime,
+            cutoffTime: CafeineXWidgetSnapshot.preview.cutoffTime,
+            state: state,
+            recentExposures: recentExposures,
+            favoriteDrinks: favoriteDrinks,
+            activeRangePoints: activeRangePoints
+        )
     }
 }

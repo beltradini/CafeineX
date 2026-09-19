@@ -1,20 +1,18 @@
 import SwiftUI
 import WidgetKit
 
-struct CafeineXOverviewWidget: Widget {
+struct CafeineXActiveWindowWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
-            kind: CafeineXWidgetConstants.overviewKind,
+            kind: CafeineXWidgetConstants.activeWindowKind,
             provider: CafeineXWidgetProvider()
         ) { entry in
-            CafeineXOverviewEntryView(entry: entry)
+            CafeineXActiveWindowEntryView(entry: entry)
         }
-        .configurationDisplayName("CafeineX Overview")
-        .description("See your active caffeine estimate in context with your configured sleep window.")
+        .configurationDisplayName("Active Window")
+        .description("See your active estimate and sleep context.")
         .supportedFamilies([
             .systemSmall,
-            .systemMedium,
-            .systemLarge,
             .accessoryInline,
             .accessoryCircular,
             .accessoryRectangular,
@@ -22,17 +20,13 @@ struct CafeineXOverviewWidget: Widget {
     }
 }
 
-struct CafeineXOverviewEntryView: View {
+struct CafeineXActiveWindowEntryView: View {
     @Environment(\.widgetFamily) private var family
     let entry: CafeineXWidgetEntry
 
     @ViewBuilder
     var body: some View {
         switch family {
-        case .systemMedium:
-            CafeineXTodayView(snapshot: entry.snapshot)
-        case .systemLarge:
-            CafeineXDailyRhythmView(snapshot: entry.snapshot)
         case .accessoryInline:
             CafeineXInlineWindowView(snapshot: entry.snapshot)
         case .accessoryCircular:
@@ -46,52 +40,56 @@ struct CafeineXOverviewEntryView: View {
 }
 
 private struct CafeineXSmallWindowView: View {
-    @Environment(\.showsWidgetContainerBackground) private var showsBackground
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let snapshot: CafeineXWidgetSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: showsBackground ? 9 : 13) {
-            if showsBackground {
-                CafeineXBrandMark()
+        VStack(alignment: .leading, spacing: 8) {
+            Text(snapshot.activeRangeText)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .contentTransition(.numericText())
+                .privacySensitive()
+
+            if !isLuminanceReduced {
+                if snapshot.isStale() {
+                    CafeineXFreshnessLabel(snapshot: snapshot)
+                        .privacySensitive()
+                } else {
+                    Text("Active estimate")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
 
-            Text(snapshot.activeRangeText)
-                .font(.system(
-                    size: showsBackground ? 31 : 36,
-                    weight: .bold,
-                    design: .rounded
-                ))
-                .lineLimit(1)
-                .minimumScaleFactor(0.62)
-                .contentTransition(.numericText())
+            CafeineXStateLabel(snapshot: snapshot)
+                .privacySensitive()
 
-            Text("estimated active caffeine")
-                .font(.caption2)
+            if !isLuminanceReduced {
+                Label(
+                    "Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))",
+                    systemImage: "bed.double.fill"
+                )
+                .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-
-            CafeineXStateLabel(snapshot: snapshot, compact: true)
-
-            Label(
-                "Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))",
-                systemImage: "bed.double.fill"
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+                .privacySensitive()
+            }
         }
         .containerBackground(for: .widget) {
             CafeineXWidgetBackground()
         }
+        .privacySensitive()
         .widgetURL(URL(string: "cafeinex://history"))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
     }
 
     private var accessibilitySummary: String {
-        "CafeineX, \(snapshot.activeRangeText) active estimate, \(snapshot.state.title), configured sleep time \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))"
+        "\(snapshot.activeRangeText) active estimate. \(snapshot.state.title). Configured sleep time \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))."
     }
 }
 
@@ -100,11 +98,13 @@ private struct CafeineXInlineWindowView: View {
 
     var body: some View {
         Label(
-            "\(snapshot.activeRangeText) · Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))",
-            systemImage: "sparkles"
+            "\(snapshot.activeRangeText) active",
+            systemImage: snapshot.state.symbolName
         )
+        .privacySensitive()
         .containerBackground(for: .widget) { Color.clear }
         .widgetURL(URL(string: "cafeinex://history"))
+        .accessibilityLabel("\(snapshot.activeRangeText) active estimate. \(snapshot.state.title).")
     }
 }
 
@@ -115,25 +115,14 @@ private struct CafeineXCircularWindowView: View {
         ZStack {
             AccessoryWidgetBackground()
 
-            VStack(spacing: -2) {
-                Text(centralAmount)
-                    .font(.system(.headline, design: .rounded, weight: .bold))
-                Text("mg")
-                    .font(.system(size: 9, weight: .semibold))
-            }
-            .widgetAccentable()
+            Image(systemName: snapshot.state.symbolName)
+                .font(.title3.weight(.semibold))
+                .widgetAccentable()
         }
+        .privacySensitive()
         .containerBackground(for: .widget) { Color.clear }
         .widgetURL(URL(string: "cafeinex://history"))
-        .accessibilityLabel("\(snapshot.activeRangeText) active estimate")
-    }
-
-    private var centralAmount: String {
-        guard let low = snapshot.activeCaffeineLowMG,
-              let high = snapshot.activeCaffeineHighMG else {
-            return "—"
-        }
-        return Int(((low + high) / 2).rounded()).formatted()
+        .accessibilityLabel("\(snapshot.state.title). \(snapshot.activeRangeText) active estimate.")
     }
 }
 
@@ -141,23 +130,17 @@ private struct CafeineXRectangularWindowView: View {
     let snapshot: CafeineXWidgetSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(snapshot.activeRangeText)
                 .font(.headline)
                 .lineLimit(1)
 
-            CafeineXStateLabel(snapshot: snapshot, compact: true)
-
-            Label(
-                "Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))",
-                systemImage: "bed.double.fill"
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+            CafeineXStateLabel(snapshot: snapshot)
         }
+        .privacySensitive()
         .containerBackground(for: .widget) { Color.clear }
         .widgetURL(URL(string: "cafeinex://history"))
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(snapshot.activeRangeText) active estimate. \(snapshot.state.title).")
     }
 }

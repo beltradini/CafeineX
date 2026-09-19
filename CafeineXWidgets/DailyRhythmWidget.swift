@@ -1,15 +1,80 @@
 import SwiftUI
 import WidgetKit
 
+struct CafeineXDailyRhythmWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(
+            kind: CafeineXWidgetConstants.dailyRhythmKind,
+            provider: CafeineXWidgetProvider()
+        ) { entry in
+            CafeineXDailyRhythmView(snapshot: entry.snapshot)
+        }
+        .configurationDisplayName("Daily Rhythm")
+        .description("See how your active estimate changes toward sleep.")
+        .supportedFamilies([.systemLarge])
+    }
+}
+
 struct CafeineXDailyRhythmView: View {
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let snapshot: CafeineXWidgetSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            header
-            primaryMetric
-            activeRangeChart
-            recentExposures
+        VStack(alignment: .leading, spacing: 12) {
+            Text("DAILY RHYTHM")
+                .font(.caption.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(CafeineXWidgetPalette.caffeine)
+                .widgetAccentable()
+
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(snapshot.activeRangeText)
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .contentTransition(.numericText())
+                    Text("active now")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 16)
+
+                CafeineXStateLabel(snapshot: snapshot)
+            }
+            .privacySensitive()
+
+            ActiveRangeBand(points: snapshot.activeRangePoints)
+                .frame(maxWidth: .infinity, minHeight: 132)
+                .privacySensitive()
+
+            HStack {
+                Text("Now")
+                Spacer()
+                Label(
+                    "Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))",
+                    systemImage: "bed.double.fill"
+                )
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .privacySensitive()
+
+            Spacer(minLength: 0)
+            Divider()
+
+            HStack(spacing: 12) {
+                Text("\(Int(snapshot.caffeineTodayMG.rounded())) mg today")
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer(minLength: 8)
+
+                if !isLuminanceReduced {
+                    latestExposure
+                }
+            }
+            .privacySensitive()
         }
         .containerBackground(for: .widget) {
             CafeineXWidgetBackground()
@@ -18,173 +83,77 @@ struct CafeineXDailyRhythmView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var header: some View {
-        HStack {
-            CafeineXBrandMark()
-            Spacer()
-            CafeineXStateLabel(snapshot: snapshot)
-            Link(destination: URL(string: "cafeinex://quick-add")!) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(CafeineXWidgetPalette.caffeine)
-                    .widgetAccentable()
-            }
-            .accessibilityLabel("Open Quick Add")
-        }
-    }
-
-    private var primaryMetric: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(snapshot.activeRangeText)
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .contentTransition(.numericText())
-                Text("estimated active caffeine")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 1) {
-                Text("\(Int(snapshot.caffeineTodayMG.rounded())) mg")
-                    .font(.title3.weight(.bold))
-                Text("logged today")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var activeRangeChart: some View {
-        VStack(spacing: 5) {
-            ActiveRangeBand(points: snapshot.activeRangePoints)
-                .frame(height: 112)
-
-            HStack {
-                Text("Now")
-                Spacer()
-                Text(cutoffLabel)
-                Spacer()
-                Text("Sleep \(snapshot.bedtime.formatted(date: .omitted, time: .shortened))")
-            }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        .padding(10)
-        .background(.secondary.opacity(0.10), in: ContainerRelativeShape())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Estimated active caffeine range from now through configured sleep time"
-        )
-    }
-
-    private var cutoffLabel: String {
-        if snapshot.cutoffTime <= .now {
-            return "After cutoff"
-        }
-        return "Cutoff \(snapshot.cutoffTime.formatted(date: .omitted, time: .shortened))"
-    }
-
     @ViewBuilder
-    private var recentExposures: some View {
-        if snapshot.recentExposures.isEmpty {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Recent exposures")
-                    .font(.headline)
-                Text("No recent caffeine or nicotine exposures are available.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private var latestExposure: some View {
+        if let exposure = snapshot.recentExposures.first {
+            Text("Latest: \(exposure.title) · \(exposure.date.formatted(date: .omitted, time: .shortened))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
         } else {
-            VStack(alignment: .leading, spacing: 7) {
-                Text("Recent exposures")
-                    .font(.headline)
-
-                ForEach(snapshot.recentExposures.prefix(2)) { exposure in
-                    HStack(spacing: 9) {
-                        Image(systemName: exposure.symbolName)
-                            .frame(width: 20)
-                            .foregroundStyle(exposure.accentColor)
-                            .widgetAccentable()
-                            .accessibilityHidden(true)
-
-                        Text(exposure.title)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        Text(exposure.amountText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Text(exposure.date, style: .time)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
+            Text("No recent exposures")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
-
 }
 
 private struct ActiveRangeBand: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let points: [WidgetActiveRangePoint]
 
     var body: some View {
         GeometryReader { proxy in
             if points.isEmpty {
-                VStack(spacing: 5) {
+                VStack(spacing: 6) {
                     Image(systemName: "chart.xyaxis.line")
-                    Text("No recent caffeine")
+                    Text("No recent caffeine data")
                         .font(.caption)
                 }
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ZStack {
-                    horizontalGuides
+                ZStack(alignment: .trailing) {
                     bandPath(in: proxy.size)
-                        .fill(CafeineXWidgetPalette.caffeine.opacity(0.16))
-                        .widgetAccentable()
-                    linePath(\.highMG, in: proxy.size)
+                        .fill(bandColor.opacity(isLuminanceReduced ? 0.12 : 0.18))
+
+                    bandPath(in: proxy.size)
                         .stroke(
-                            CafeineXWidgetPalette.caffeine,
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+                            bandColor.opacity(isLuminanceReduced ? 0.65 : 0.82),
+                            style: StrokeStyle(lineWidth: 1.5, lineJoin: .round)
                         )
-                        .widgetAccentable()
-                    linePath(\.lowMG, in: proxy.size)
-                        .stroke(
-                            CafeineXWidgetPalette.sleep.opacity(0.85),
-                            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
-                        )
+
+                    Rectangle()
+                        .fill(sleepMarkerColor)
+                        .frame(width: 2)
                 }
+                .widgetAccentable()
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Estimated active caffeine range from now to configured sleep time")
     }
 
-    private var horizontalGuides: some View {
-        VStack {
-            Divider().opacity(0.25)
-            Spacer()
-            Divider().opacity(0.16)
-            Spacer()
-            Divider().opacity(0.12)
-        }
+    private var bandColor: Color {
+        renderingMode == .fullColor && !isLuminanceReduced
+            ? CafeineXWidgetPalette.caffeine
+            : .primary
     }
 
-    private func linePath(
-        _ keyPath: KeyPath<WidgetActiveRangePoint, Double>,
-        in size: CGSize
-    ) -> Path {
+    private var sleepMarkerColor: Color {
+        renderingMode == .fullColor && !isLuminanceReduced
+            ? CafeineXWidgetPalette.sleep
+            : .secondary
+    }
+
+    private func bandPath(in size: CGSize) -> Path {
         Path { path in
             for (index, point) in points.enumerated() {
                 let location = chartPoint(
                     index: index,
-                    value: point[keyPath: keyPath],
+                    value: point.highMG,
                     size: size
                 )
                 if index == 0 {
@@ -193,22 +162,13 @@ private struct ActiveRangeBand: View {
                     path.addLine(to: location)
                 }
             }
-        }
-    }
-
-    private func bandPath(in size: CGSize) -> Path {
-        Path { path in
-            for (index, point) in points.enumerated() {
-                let location = chartPoint(index: index, value: point.highMG, size: size)
-                if index == 0 {
-                    path.move(to: location)
-                } else {
-                    path.addLine(to: location)
-                }
-            }
 
             for (index, point) in points.enumerated().reversed() {
-                path.addLine(to: chartPoint(index: index, value: point.lowMG, size: size))
+                path.addLine(to: chartPoint(
+                    index: index,
+                    value: point.lowMG,
+                    size: size
+                ))
             }
             path.closeSubpath()
         }

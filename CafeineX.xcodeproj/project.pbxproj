@@ -63,6 +63,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9D3A5E00309E1C4A00A11C57 /* Exceptions for "CafeineX" folder in "CafeineX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CafeineX.icon,
+			);
+			target = 9D01A7FE2FC3AD3200B0709A /* CafeineX */;
+		};
 		9D0D5C7B302A83D900719BC1 /* Exceptions for "CafeineXWidgets" folder in "CafeineXWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -82,6 +89,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9D01A8012FC3AD3200B0709A /* CafeineX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9D3A5E00309E1C4A00A11C57 /* Exceptions for "CafeineX" folder in "CafeineX" target */,
+			);
 			path = CafeineX;
 			sourceTree = "<group>";
 		};
