@@ -200,6 +200,11 @@ struct AppShellView: View {
     private func consumeWidgetCommands() {
         do {
             try processWidgetCommands()
+        } catch WidgetCommandQueue.QueueError.appGroupUnavailable {
+            // Shared App Group storage is unavailable, so there is no inbox to
+            // drain and nothing the user can retry. Alerting on every scene
+            // activation would cry wolf; a real enqueue failure still throws
+            // from the intent that wrote it.
         } catch {
             persistenceIssueCenter.report("Recording the widget drink", error: error) {
                 try processWidgetCommands()
