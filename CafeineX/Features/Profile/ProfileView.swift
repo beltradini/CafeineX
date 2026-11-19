@@ -105,6 +105,7 @@ struct ProfileView: View {
                             tint: CXTheme.healthAccent
                         )
                     }
+                    .accessibilityIdentifier("profile-privacy-data-link")
                 }
 
                 Section("About") {

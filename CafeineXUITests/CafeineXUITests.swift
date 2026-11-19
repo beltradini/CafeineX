@@ -114,6 +114,49 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testDeleteAllDataRemovesEntriesWhenWidgetStorageUnavailable() throws {
+        let app = makeApp()
+        app.launchArguments.append("-simulate-no-app-group")
+        app.launch()
+
+        let espresso = app.buttons["Add Espresso, 64 milligrams"].firstMatch
+        XCTAssertTrue(espresso.waitForExistence(timeout: 8))
+        espresso.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["undo-last-add-button"]
+                .waitForExistence(timeout: 5)
+        )
+
+        let profile = navigationButton(named: "Profile", in: app)
+        XCTAssertTrue(profile.waitForExistence(timeout: 3))
+        profile.tap()
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 8))
+
+        let privacyLink = app.descendants(matching: .any)["profile-privacy-data-link"].firstMatch
+        try scrollToHittable(privacyLink, in: app.collectionViews.firstMatch)
+        privacyLink.tap()
+        XCTAssertTrue(app.navigationBars["Privacy & Data"].waitForExistence(timeout: 5))
+
+        let deleteButton = app.buttons["Delete All My CafeineX Data"].firstMatch
+        try scrollToHittable(deleteButton, in: app.collectionViews.firstMatch)
+        deleteButton.tap()
+
+        let confirm = app.buttons["Delete All Data"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+
+        let resultAlert = app.alerts["Data Deletion"]
+        XCTAssertTrue(resultAlert.waitForExistence(timeout: 10))
+        XCTAssertFalse(resultAlert.staticTexts.element(boundBy: 0).label.contains("could not complete"))
+        resultAlert.buttons["OK"].tap()
+
+        let history = navigationButton(named: "History", in: app)
+        history.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Espresso"].exists)
+    }
+
+    @MainActor
     func testUsualNicotineLogsFromHomeWithOneTap() throws {
         let app = makeApp()
         app.launch()
