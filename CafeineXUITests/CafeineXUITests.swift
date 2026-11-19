@@ -90,7 +90,14 @@ final class CafeineXUITests: XCTestCase {
         quickAdd.tap()
 
         XCTAssertTrue(app.navigationBars["Add exposure"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Customize caffeine"].exists)
+
+        // The customize rows sit below the fold of the medium detent; Form
+        // cells only enter the accessibility tree once scrolled on screen.
+        let customize = app.descendants(matching: .any)["Customize caffeine"].firstMatch
+        for _ in 0..<4 where !customize.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(customize.waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -188,8 +195,10 @@ final class CafeineXUITests: XCTestCase {
         let app = makeApp()
         app.launch()
 
-        let logButton = app.descendants(matching: .any)["cigarette-log-one-button"].firstMatch
-        try scrollToHittable(logButton, in: app.scrollViews.firstMatch)
+        // The cigarette card was folded into the one-tap quick log on Home;
+        // with no prior entries it defaults to one cigarette.
+        let logButton = app.buttons["home-quick-log-nicotine-button"].firstMatch
+        XCTAssertTrue(logButton.waitForExistence(timeout: 8))
         logButton.tap()
 
         let undo = app.descendants(matching: .any)["undo-last-add-button"].firstMatch
@@ -197,6 +206,11 @@ final class CafeineXUITests: XCTestCase {
         XCTAssertTrue(undo.isHittable)
         undo.tap()
         XCTAssertTrue(logButton.waitForExistence(timeout: 3))
+        XCTAssertFalse(undo.waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["home-empty-state-card"]
+                .waitForExistence(timeout: 5)
+        )
     }
 
     @MainActor

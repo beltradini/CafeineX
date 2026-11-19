@@ -18,6 +18,10 @@ struct CafeineXApp: App {
 
     @AppStorage(CafeineXOnboarding.completionKey) private var hasCompletedOnboarding = false
     @AppStorage(CafeineXWhatsNew.completionKey) private var hasSeenWhatsNew = false
+    // UI-test runs force the tours via launch arguments; these track whether
+    // this launch already finished them, so the flags do not loop the tours.
+    @State private var uiTestingOnboardingDismissed = false
+    @State private var uiTestingWhatsNewDismissed = false
     @State private var persistenceController = CafeineXPersistenceController(
         useInMemoryStore: ProcessInfo.processInfo.arguments.contains("-ui-testing")
     )
@@ -40,10 +44,12 @@ struct CafeineXApp: App {
                     if shouldShowOnboarding {
                         OnboardingView {
                             hasCompletedOnboarding = true
+                            uiTestingOnboardingDismissed = true
                         }
                     } else if shouldShowWhatsNew {
                         WhatsNewView {
                             hasSeenWhatsNew = true
+                            uiTestingWhatsNewDismissed = true
                         }
                     } else {
                         AppShellView(persistenceIssueCenter: persistenceIssueCenter)
@@ -69,6 +75,7 @@ struct CafeineXApp: App {
     private var shouldShowOnboarding: Bool {
         guard !ProcessInfo.processInfo.arguments.contains("-ui-testing") else {
             return ProcessInfo.processInfo.arguments.contains("-show-onboarding")
+                && !uiTestingOnboardingDismissed
         }
         return !hasCompletedOnboarding
     }
@@ -77,6 +84,7 @@ struct CafeineXApp: App {
         guard hasCompletedOnboarding else { return false }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
             return ProcessInfo.processInfo.arguments.contains("-show-whats-new")
+                && !uiTestingWhatsNewDismissed
         }
         return !hasSeenWhatsNew
     }
