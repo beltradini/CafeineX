@@ -111,6 +111,11 @@ nonisolated enum WidgetCommandStore {
     static let didEnqueue = Notification.Name("CafeineX.widgetCommandDidEnqueue")
 
     static func sharedQueue() throws -> WidgetCommandQueue {
+        // UI tests pass -simulate-no-app-group to exercise the unavailable
+        // shared-storage path deterministically, regardless of signing.
+        if ProcessInfo.processInfo.arguments.contains("-simulate-no-app-group") {
+            throw WidgetCommandQueue.QueueError.appGroupUnavailable
+        }
         guard let directory = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: CafeineXWidgetConstants.appGroupID
         ) else { throw WidgetCommandQueue.QueueError.appGroupUnavailable }

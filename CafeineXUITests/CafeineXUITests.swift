@@ -116,6 +116,7 @@ final class CafeineXUITests: XCTestCase {
     @MainActor
     func testDeleteAllDataRemovesEntriesWhenWidgetStorageUnavailable() throws {
         let app = makeApp()
+        app.launchArguments.append("-simulate-no-app-group")
         app.launch()
 
         let espresso = app.buttons["Add Espresso, 64 milligrams"].firstMatch
