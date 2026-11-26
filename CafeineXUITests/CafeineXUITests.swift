@@ -325,6 +325,21 @@ final class CafeineXUITests: XCTestCase {
     }
 
     @MainActor
+    func testReactivationDoesNotRaiseWidgetStorageAlert() throws {
+        let app = makeApp()
+        app.launch()
+
+        XCTAssertTrue(navigationButton(named: "Home", in: app).waitForExistence(timeout: 8))
+        XCTAssertFalse(app.alerts["Could Not Save"].waitForExistence(timeout: 2))
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+
+        XCTAssertTrue(navigationButton(named: "Home", in: app).waitForExistence(timeout: 8))
+        XCTAssertFalse(app.alerts["Could Not Save"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
