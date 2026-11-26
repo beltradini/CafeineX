@@ -198,9 +198,6 @@ struct AppShellView: View {
     // MARK: - Widget Command
 
     private func consumeWidgetCommands() {
-        // UI-test builds are unsigned, so the app group container the widget
-        // queue lives in is unreachable; there are no widget commands to consume.
-        guard !ProcessInfo.processInfo.arguments.contains("-ui-testing") else { return }
         do {
             try processWidgetCommands()
         } catch WidgetCommandQueue.QueueError.appGroupUnavailable {
