@@ -13,15 +13,17 @@ struct CafeineXDataDeletionService {
     private let fileManager: FileManager
     private let recoveryRootURL: URL
     private let defaults: UserDefaults
-    private let clearPendingSystemActions: @MainActor () throws -> Void
+    private let clearPendingSystemActions: @MainActor () -> Void
 
     init(
         healthKitService: any HealthKitProviding,
         fileManager: FileManager = .default,
         recoveryRootURL: URL = CafeineXStoreFactory.recoveryRootURL(),
         defaults: UserDefaults = .standard,
-        clearPendingSystemActions: @escaping @MainActor () throws -> Void = {
-            try WidgetCommandStore.sharedQueue().removeAll()
+        clearPendingSystemActions: @escaping @MainActor () -> Void = {
+            // Best-effort: shared widget storage may be unavailable (no App
+            // Group on unsigned builds); it must never gate deleting user data.
+            try? WidgetCommandStore.sharedQueue().removeAll()
             IntentUndoFailureStore.shared.removeAll()
             CafeineXWidgetStore.saveSnapshot(.empty)
         }
@@ -60,7 +62,7 @@ struct CafeineXDataDeletionService {
         var removedRecoveryBackups = false
         do {
             // A queued widget tap must not recreate personal data after deletion.
-            try clearPendingSystemActions()
+            clearPendingSystemActions()
             localRecordCount += try deleteAll(CigaretteEventDetails.self, from: context)
             localRecordCount += try deleteAll(DrinkDetails.self, from: context)
             localRecordCount += try deleteAll(DrinkMetadata.self, from: context)
