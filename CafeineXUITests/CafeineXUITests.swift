@@ -341,6 +341,7 @@ final class CafeineXUITests: XCTestCase {
     @MainActor
     func testReactivationDoesNotRaiseWidgetStorageAlert() throws {
         let app = makeApp()
+        app.launchArguments.append("-simulate-no-app-group")
         app.launch()
 
         XCTAssertTrue(navigationButton(named: "Home", in: app).waitForExistence(timeout: 8))

@@ -200,7 +200,9 @@ struct AppShellView: View {
     private func consumeWidgetCommands() {
         // UI tests run on an in-memory store; draining the shared widget inbox
         // would move real pending widget drinks into a store that is discarded.
-        guard !ProcessInfo.processInfo.arguments.contains("-ui-testing") else { return }
+        // -simulate-no-app-group never touches shared storage, so it still runs.
+        let arguments = ProcessInfo.processInfo.arguments
+        guard !arguments.contains("-ui-testing") || arguments.contains("-simulate-no-app-group") else { return }
         do {
             try processWidgetCommands()
         } catch WidgetCommandQueue.QueueError.appGroupUnavailable {
