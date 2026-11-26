@@ -198,6 +198,9 @@ struct AppShellView: View {
     // MARK: - Widget Command
 
     private func consumeWidgetCommands() {
+        // UI tests run on an in-memory store; draining the shared widget inbox
+        // would move real pending widget drinks into a store that is discarded.
+        guard !ProcessInfo.processInfo.arguments.contains("-ui-testing") else { return }
         do {
             try processWidgetCommands()
         } catch WidgetCommandQueue.QueueError.appGroupUnavailable {
